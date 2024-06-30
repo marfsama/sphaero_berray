@@ -66,6 +66,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
   private int pHeight = 480;
   private int pWidth = 640;
+  private SelectImagePanel selectImagePanel;
 
   /**
    * Creates and displays a simple JFrame containing a jigsaw puzzle in a
@@ -116,11 +117,20 @@ public class JigsawFrame extends JFrame implements ActionListener {
   public JigsawFrame() {
     super("Jigsaw Puzzle");
     initFrameWork();
-    initPrompt();
+    initSelectImagePrompt();
   }
 
   private void initFrameWork() {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+    this.selectImagePanel = new SelectImagePanel();
+    selectImagePanel.addPropertyChangeListener(event -> {
+      if (SelectImagePanel.JIGSAW_PARAMS.equals(event.getPropertyName())) {
+        JigsawParam params = (JigsawParam) event.getNewValue();
+        setupPuzzle(params);
+      }
+    });
+
 
     JMenu jmf = new JMenu("File");
     jmf.setMnemonic(KeyEvent.VK_F);
@@ -168,13 +178,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     JigsawPanel puzzle = new JigsawPanel(jigsaw);
     JPanel ppanel = new JPanel(new BorderLayout());
     ppanel.add(new JScrollPane(puzzle));
-    JPanel statusbar = new JPanel();
-    statusbar.setLayout(new FlowLayout(FlowLayout.RIGHT));
-    TimeLabel tlabel = new TimeLabel();
-    statusbar.add(new JLabel("Progress: 0% (5/5)"));
-    statusbar.add(Box.createHorizontalStrut(2));
-    statusbar.add(tlabel);
-    ppanel.add(statusbar, BorderLayout.SOUTH);
+    TimeLabel tlabel = createStatusBar(ppanel);
     setContentPane(ppanel);
     pack();
 
@@ -200,23 +204,21 @@ public class JigsawFrame extends JFrame implements ActionListener {
     puzzle.setTimeLabel(tlabel);
   }
 
-  private void initPrompt() {
-    JPanel mainPane = new SelectImagePanel();
-    mainPane.addPropertyChangeListener(event -> {
-      if (SelectImagePanel.JIGSAW_PARAMS.equals(event.getPropertyName())) {
-        JigsawParam params = (JigsawParam) event.getNewValue();
-        setupPuzzle(params);
-      }
-    });
-
-    setContentPane(mainPane);
-    setSize(pWidth, pHeight);
-    setVisible(true);
+  private static TimeLabel createStatusBar(JPanel ppanel) {
+    JPanel statusbar = new JPanel();
+    statusbar.setLayout(new FlowLayout(FlowLayout.RIGHT));
+    TimeLabel tlabel = new TimeLabel();
+    statusbar.add(new JLabel("Progress: 0% (5/5)"));
+    statusbar.add(Box.createHorizontalStrut(2));
+    statusbar.add(tlabel);
+    ppanel.add(statusbar, BorderLayout.SOUTH);
+    return tlabel;
   }
 
-  private static void fatalError(String s) {
-    System.err.println(s); //NOPMD
-    System.exit(1);
+  private void initSelectImagePrompt() {
+    setContentPane(selectImagePanel);
+    setSize(pWidth, pHeight);
+    setVisible(true);
   }
 
   public static void main(String[] args) {
@@ -231,7 +233,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     jmb.revalidate();
     miniImage = null;
     System.gc();
-    initPrompt();
+    initSelectImagePrompt();
   }
 
   private void showPicture() {
