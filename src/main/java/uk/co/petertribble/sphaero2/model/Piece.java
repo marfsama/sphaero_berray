@@ -1,4 +1,4 @@
-package uk.co.petertribble.sphaero2;
+package uk.co.petertribble.sphaero2.model;
 
 import java.awt.*;
 import java.awt.image.MemoryImageSource;
@@ -446,7 +446,7 @@ public class Piece {
    *
    * @param g the Graphics object to draw to
    */
-  protected void draw(Graphics g) {
+  public void draw(Graphics g) {
     Image img = getImage();
     if (img != null) {
       g.drawImage(img, getPuzzleX(), getPuzzleY(), null);

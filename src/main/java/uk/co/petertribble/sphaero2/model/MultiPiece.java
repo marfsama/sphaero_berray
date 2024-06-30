@@ -1,4 +1,4 @@
-package uk.co.petertribble.sphaero2;
+package uk.co.petertribble.sphaero2.model;
 
 import java.util.HashSet;
 import java.util.Set;

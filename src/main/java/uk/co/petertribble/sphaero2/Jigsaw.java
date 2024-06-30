@@ -1,10 +1,10 @@
 package uk.co.petertribble.sphaero2;
 
+import uk.co.petertribble.sphaero2.model.Piece;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
 
 
@@ -43,11 +43,12 @@ public class Jigsaw {
   public void shuffle(int width, int height) {
     // Arrays.asList() doesn't work, so be explicit
     List<Piece> pieces = zOrder;
-    zOrder = new ArrayList<Piece>();
+    zOrder = new ArrayList<>();
+    Random random = new Random();
     for (Piece piece : pieces) {
       piece.setPuzzlePosition(
-          (int) (Math.random() * (width - piece.getCurrentWidth())),
-          (int) (Math.random() * (height - piece.getCurrentHeight())));
+          random.nextInt(width - piece.getCurrentWidth()),
+          random.nextInt(height - piece.getCurrentHeight()));
       zOrder.add(piece);
     }
     Collections.shuffle(zOrder);

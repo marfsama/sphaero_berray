@@ -1,5 +1,8 @@
 package uk.co.petertribble.sphaero2;
 
+import uk.co.petertribble.sphaero2.model.Knob;
+import uk.co.petertribble.sphaero2.model.Piece;
+
 import java.awt.*;
 import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;

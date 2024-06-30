@@ -29,7 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.co.petertribble.sphaero2;
+package uk.co.petertribble.sphaero2.components;
 
 import javax.swing.*;
 import java.awt.*;
@@ -59,14 +59,10 @@ public class ImagePreview extends JComponent implements PropertyChangeListener {
     // because the image we're trying to load is probably not one
     // of this program's own resources.
     ImageIcon tmpIcon = new ImageIcon(file.getPath());
-    if (tmpIcon != null) {
-      if (tmpIcon.getIconWidth() > 90) {
-        thumbnail = new ImageIcon(tmpIcon.getImage().
-            getScaledInstance(90, -1,
-                Image.SCALE_DEFAULT));
-      } else { // no need to miniaturize
-        thumbnail = tmpIcon;
-      }
+    if (tmpIcon.getIconWidth() > 90) {
+      thumbnail = new ImageIcon(tmpIcon.getImage().getScaledInstance(90, -1,Image.SCALE_DEFAULT));
+    } else { // no need to miniaturize
+      thumbnail = tmpIcon;
     }
   }
 

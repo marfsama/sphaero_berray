@@ -1,13 +1,13 @@
 package uk.co.petertribble.sphaero2;
 
+import uk.co.petertribble.sphaero2.components.TimeLabel;
+import uk.co.petertribble.sphaero2.model.Piece;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.image.BufferedImage;
 import java.awt.image.MemoryImageSource;
 import java.awt.image.PixelGrabber;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.ListIterator;
 
 // ### I think I need a quicker way to detect which piece is clicked on.

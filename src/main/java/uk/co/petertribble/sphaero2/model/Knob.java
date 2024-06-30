@@ -1,8 +1,9 @@
-package uk.co.petertribble.sphaero2;
+package uk.co.petertribble.sphaero2.model;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.GeneralPath;
+import java.awt.geom.Path2D;
 
 // ### Trouble with this scheme: roundoff error, apparently.  Transformed
 //   paths aren't guaranteed to end up exactly at the endpoints.
@@ -106,9 +107,9 @@ public class Knob {
 
     jitter(data, XVARY, YVARY, XDBVARY, XDFVARY);
 
-    cPath = new GeneralPath(GeneralPath.WIND_NON_ZERO, data.length * 3 - 2);
+    cPath = new GeneralPath(Path2D.WIND_NON_ZERO, data.length * 3 - 2);
     cPathReverse
-        = new GeneralPath(GeneralPath.WIND_NON_ZERO, data.length * 3 - 2);
+        = new GeneralPath(Path2D.WIND_NON_ZERO, data.length * 3 - 2);
     cPath.moveTo(data[0][X], data[0][Y]);
     cPathReverse.moveTo(data[data.length - 1][X], data[data.length - 1][Y]);
     for (int i = 0; i < data.length - 1; i++) {

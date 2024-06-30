@@ -1,8 +1,11 @@
 package uk.co.petertribble.sphaero2;
 
+import uk.co.petertribble.sphaero2.components.SelectImagePanel;
+import uk.co.petertribble.sphaero2.components.TimeLabel;
+import uk.co.petertribble.sphaero2.model.JigsawParam;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -60,28 +63,9 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private Image image;
   private Icon miniImage;
 
-  // for the interactive prompt
-  private static final Color HELP_COLOR = new Color(100, 100, 150);
-  private JTextField imageField;
-  private JButton browseButton;
-  private JComboBox<JigsawCutter> cutterCBox;
-  private JSpinner pieceSpinner;
-  private JLabel cutterDescLabel;
-  private JButton okButton;
 
   private int pHeight = 480;
   private int pWidth = 640;
-
-  private int defaultPieces = JigsawCutter.DEFAULT_PIECES;
-  private JigsawCutter defaultCutter;
-
-  private static final JigsawCutter[] cutters = {
-      new Classic4Cutter(),
-      new ClassicCutter(),
-      new SquareCutter(),
-      new RectCutter(),
-      new QuadCutter(),
-  };
 
   /**
    * Creates and displays a simple JFrame containing a jigsaw puzzle in a
@@ -121,8 +105,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
    */
   public JigsawFrame(BufferedImage image, int pieces, JigsawCutter cutter) {
     super("Jigsaw Puzzle");
-    defaultPieces = pieces;
-    defaultCutter = cutter;
     initFrameWork();
     init(image, cutter);
   }
@@ -130,24 +112,11 @@ public class JigsawFrame extends JFrame implements ActionListener {
   /**
    * Prompt for an image to solve, with the given number of pieces
    * and piece style.
-   *
-   * @param pieces the number of pieces to create
-   * @param cutter the JigsawCutter to be used to cut the image into pieces
-   */
-  public JigsawFrame(int pieces, JigsawCutter cutter) {
-    super("Jigsaw Puzzle");
-    defaultPieces = pieces;
-    defaultCutter = cutter;
-    initFrameWork();
-    initPrompt();
-  }
-
-  /**
-   * Prompt for an image to solve, with the default number of pieces
-   * and piece style.
    */
   public JigsawFrame() {
-    this(JigsawCutter.DEFAULT_PIECES, cutters[0]);
+    super("Jigsaw Puzzle");
+    initFrameWork();
+    initPrompt();
   }
 
   private void initFrameWork() {
@@ -232,76 +201,13 @@ public class JigsawFrame extends JFrame implements ActionListener {
   }
 
   private void initPrompt() {
-    JPanel mainPane = new JPanel();
-    mainPane.setLayout(new BoxLayout(mainPane, BoxLayout.PAGE_AXIS));
-
-    imageField = new JTextField();
-    imageField.setText(getCurrentPath());
-    imageField.selectAll();
-
-    browseButton = new JButton("Browse...");
-    browseButton.setMnemonic(KeyEvent.VK_B);
-    browseButton.addActionListener(this);
-
-    JLabel imageLabel = createHelpLabel("<html>"
-        + "If this is an image file, it is used to create the puzzle. "
-        + "If it is a folder, an image file is selected from it "
-        + "(including any subfolders) at random.");
-
-    JPanel imageBPane = new JPanel();
-    imageBPane.setLayout(new BoxLayout(imageBPane, BoxLayout.LINE_AXIS));
-    imageBPane.add(imageField);
-    imageBPane.add(Box.createRigidArea(new Dimension(10, 0)));
-    imageBPane.add(browseButton);
-
-    JPanel imagePane = new JPanel(new BorderLayout());
-    imagePane.setBorder(createTitledBorder("Find an image"));
-    imagePane.add(imageBPane, BorderLayout.NORTH);
-    imagePane.add(imageLabel, BorderLayout.CENTER);
-
-    cutterCBox = new JComboBox<JigsawCutter>(cutters);
-    cutterCBox.setSelectedItem(defaultCutter);
-    cutterCBox.addActionListener(this);
-
-    cutterDescLabel = createHelpLabel(null);
-    JPanel cutterPane = new JPanel(new BorderLayout());
-    cutterPane.add(cutterCBox, BorderLayout.NORTH);
-    cutterPane.add(cutterDescLabel, BorderLayout.CENTER);
-    cutterPane.setBorder(createTitledBorder("Piece Style"));
-    fireCutterChanged();
-
-    pieceSpinner = new JSpinner(new SpinnerNumberModel(
-        defaultPieces, JigsawCutter.MIN_PIECES,
-        JigsawCutter.MAX_PIECES, 1));
-    JLabel pieceLabel = createHelpLabel("<html>"
-        + " The puzzle will have roughly this many pieces.");
-    JPanel piecePane = new JPanel(new BorderLayout());
-    piecePane.add(pieceSpinner, BorderLayout.NORTH);
-    piecePane.add(pieceLabel, BorderLayout.CENTER);
-    piecePane.setBorder(createTitledBorder("Piece Count"));
-
-    JPanel okPanel = new JPanel();
-    okPanel.setLayout(new BoxLayout(okPanel, BoxLayout.LINE_AXIS));
-    okPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-    okPanel.add(Box.createHorizontalGlue());
-    okButton = new JButton("Start Puzzling");
-    okButton.setMnemonic(KeyEvent.VK_K);
-    okPanel.add(okButton);
-    okButton.addActionListener(this);
-
-    SamplePanel sPanel = new SamplePanel(imageField);
-    if (sPanel.samplesValid()) {
-      JPanel samplePane = new JPanel(new BorderLayout());
-      samplePane.setBorder(createTitledBorder("Select an image"));
-      samplePane.add(new JScrollPane(sPanel));
-      mainPane.add(samplePane);
-      pHeight = 640;
-    }
-
-    mainPane.add(imagePane);
-    mainPane.add(piecePane);
-    mainPane.add(cutterPane);
-    mainPane.add(okPanel);
+    JPanel mainPane = new SelectImagePanel();
+    mainPane.addPropertyChangeListener(event -> {
+      if (SelectImagePanel.JIGSAW_PARAMS.equals(event.getPropertyName())) {
+        JigsawParam params = (JigsawParam) event.getNewValue();
+        setupPuzzle(params);
+      }
+    });
 
     setContentPane(mainPane);
     setSize(pWidth, pHeight);
@@ -316,106 +222,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
   public static void main(String[] args) {
     if (args.length == 0) {
       new JigsawFrame();
-    } else {
-      File base = null;
-      JigsawCutter prefCutter = cutters[0];
-      int prefPieces = JigsawCutter.DEFAULT_PIECES;
-      int arg = 0;
-      while (arg < args.length) {
-        if ("-p".equals(args[arg])) {
-          arg++;
-          if (arg < args.length) {
-            try {
-              prefPieces = Integer.parseInt(args[arg]);
-            } catch (NumberFormatException ex) {
-              fatalError("Invalid number of pieces!");
-            }
-            if (prefPieces < JigsawCutter.MIN_PIECES) {
-              fatalError("Too few pieces!");
-            }
-            if (prefPieces > JigsawCutter.MAX_PIECES) {
-              fatalError("Too many pieces!");
-            }
-          } else {
-            fatalError("Expecting an argument to -p!");
-          }
-        } else if ("-c".equals(args[arg])) {
-          arg++;
-          if (arg < args.length) {
-            String argcutter = args[arg];
-            boolean cmatch = false;
-            for (JigsawCutter cutter : cutters) {
-              if (argcutter.equalsIgnoreCase(cutter.getName())) {
-                cmatch = true;
-                prefCutter = cutter;
-              }
-            }
-            if (!cmatch) {
-              System.err.println("Invalid cutter!"); //NOPMD
-              System.err.println("Valid cutters are:"); //NOPMD
-              for (JigsawCutter cutter : cutters) {
-                System.err.println(cutter.getName()); //NOPMD
-              }
-              System.exit(1);
-            }
-          } else {
-            fatalError("Expecting an argument to -c!");
-          }
-        } else {
-          File argFile = new File(args[arg]);
-          if (argFile.exists()) {
-            base = argFile;
-          } else {
-            fatalError("Invalid file, doesn't exist!");
-          }
-          if (base.isFile() && !JigUtil.isImage(base)) {
-            fatalError("Invalid file, not an image!");
-          }
-        }
-        arg++;
-      }
-
-      /*
-       * If not given a file, put up the selection window, but with
-       * the number of pieces and cutter changed to whatever has been
-       * given in the arguments.
-       */
-      if (base == null) {
-        new JigsawFrame(prefPieces, prefCutter);
-      } else {
-
-        File file = null;
-        try {
-          file = JigUtil.getRandomImageFile(base);
-        } catch (FileNotFoundException ex) {
-          fatalError("Couldn't find an image in this directory!");
-        }
-
-        BufferedImage image = null;
-        try {
-          image = JigUtil.resizedImage(ImageIO.read(file));
-        } catch (IOException e) {
-          fatalError("Error reading image file!");
-        }
-
-        prefCutter.setPreferredPieceCount(prefPieces);
-        new JigsawFrame(image, prefPieces, prefCutter);
-      }
     }
-  }
-
-  private JLabel createHelpLabel(String text) {
-    JLabel label = new JLabel(text);
-    label.setBorder(BorderFactory.createEmptyBorder(5, 1, 1, 1));
-    label.setForeground(HELP_COLOR);
-    return label;
-  }
-
-  private Border createTitledBorder(String title) {
-    Border outer = BorderFactory.createTitledBorder(
-        BorderFactory.createEtchedBorder(), title);
-    Border inner = BorderFactory.createEmptyBorder(2, 5, 5, 5);
-    return BorderFactory.createCompoundBorder(outer, inner);
   }
 
   private void showPrompt() {
@@ -437,24 +244,9 @@ public class JigsawFrame extends JFrame implements ActionListener {
   }
 
 
-  private void fireBrowseAction() {
-    JFileChooser chooser = new JFileChooser(getCurrentFolder());
-    chooser.setFileFilter(new JigFileFilter());
-    chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-    chooser.setAccessory(new ImagePreview(chooser));
-    if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-      imageField.setText(chooser.getSelectedFile().getAbsolutePath());
-    }
-  }
-
-  private void fireCutterChanged() {
-    JigsawCutter cutter = (JigsawCutter) cutterCBox.getSelectedItem();
-    cutterDescLabel.setText("<html>" + cutter.getDescription());
-  }
-
-  private void setupPuzzle() {
+  private void setupPuzzle(JigsawParam params) {
     // Get the image.
-    File file = new File(imageField.getText());
+    File file = params.getFilename();
 
     if (!file.exists()) {
       JOptionPane.showMessageDialog(this, "File does not exist.",
@@ -477,44 +269,22 @@ public class JigsawFrame extends JFrame implements ActionListener {
     }
 
     // Get the cutter and set its piece count
-    defaultCutter = (JigsawCutter) cutterCBox.getSelectedItem();
-    defaultPieces = ((Number) pieceSpinner.getValue()).intValue();
-    defaultCutter.setPreferredPieceCount(defaultPieces);
+    JigsawCutter cutter = params.getCutter();
+    int pieces = params.getPieces();
+    cutter.setPreferredPieceCount(pieces);
 
     try {
       BufferedImage image = ImageIO.read(file);
       // FIXME this doesn't actually show the window properly until
       // after the pieces have been cut???
       // So the progress bar doesn't work either
-      init(/*JigUtil.resizedImage(image)*/ image, defaultCutter);
+      init(/*JigUtil.resizedImage(image)*/ image, cutter);
     } catch (IOException e) {
       JOptionPane.showMessageDialog(this, "Image file cannot be read.",
           "Invalid Image", JOptionPane.ERROR_MESSAGE);
     }
   }
 
-  /*
-   * Lame way of getting the current path in a way that guarantees an
-   * answer returned, and no exception thrown.  Could still throw a
-   * SecurityException, but I don't care.
-   */
-  private String getCurrentPath() {
-    File folder = getCurrentFolder();
-    try {
-      return folder.getCanonicalPath();
-    } catch (IOException ex) {
-      return folder.getAbsolutePath();
-    }
-  }
-
-  /*
-   * Returns the folder corresponding to whatever's currently displayed in
-   * imageField.
-   */
-  private File getCurrentFolder() {
-    String text = imageField.getText().trim();
-    return new File((text.length() == 0) ? "." : text);
-  }
 
   @Override
   public void actionPerformed(ActionEvent e) {
@@ -530,12 +300,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
           "About Sphaero2", JOptionPane.PLAIN_MESSAGE);
     } else if (e.getSource() == pictureItem) {
       showPicture();
-    } else if (e.getSource() == browseButton) {
-      fireBrowseAction();
-    } else if (e.getSource() == cutterCBox) {
-      fireCutterChanged();
-    } else if (e.getSource() == okButton) {
-      setupPuzzle();
     }
   }
 }

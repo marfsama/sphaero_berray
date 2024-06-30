@@ -1,5 +1,7 @@
 package uk.co.petertribble.sphaero2;
 
+import uk.co.petertribble.sphaero2.model.Piece;
+
 import javax.swing.*;
 import java.awt.image.BufferedImage;
 
