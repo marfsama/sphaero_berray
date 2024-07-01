@@ -5,12 +5,11 @@ import uk.co.petertribble.sphaero2.components.JigsawPiecesPanel;
 import uk.co.petertribble.sphaero2.components.SelectImagePanel;
 import uk.co.petertribble.sphaero2.components.TimeLabel;
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
-import uk.co.petertribble.sphaero2.model.Jigsaw;
-import uk.co.petertribble.sphaero2.model.JigsawParam;
-import uk.co.petertribble.sphaero2.model.Piece;
-import uk.co.petertribble.sphaero2.model.PiecesBin;
+import uk.co.petertribble.sphaero2.model.*;
 
 import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageOutputStream;
+import javax.imageio.stream.MemoryCacheImageOutputStream;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -184,9 +183,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     }
 
     private void init(JigsawParam params, BufferedImage image, JigsawCutter cutter) {
-        this.image = image;
-
-        Jigsaw jigsaw = new Jigsaw(params, image);
+        this.jigsaw = new Jigsaw(params, image);
 
 
         JigsawPanel puzzle = new JigsawPanel(jigsaw);
@@ -344,24 +341,51 @@ public class JigsawFrame extends JFrame implements ActionListener {
                 Path outPath = Path.of(System.getProperty("user.home"), ".sphaero");
                 try {
                     Files.createDirectories(outPath);
-                    Path out = outPath.resolve("save.txt");
-                    try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(out, WRITE, TRUNCATE_EXISTING, CREATE)))) {
-                        for (var piece : jigsaw.getPieces().getPieces()) {
-                            writer.println("id: " + piece.getId());
-                            writer.println("x: " + piece.getImageX());
-                            writer.println("y: " + piece.getImageY());
-                            writer.println("puzzlex: " + piece.getPuzzleX());
-                            writer.println("puzzley: " + piece.getPuzzleY());
-                            writer.println("w: " + piece.getImageWidth());
-                            writer.println("h: " + piece.getImageHeight());
-                            writer.println("totalw: " + piece.getTotalWidth());
-                            writer.println("totalh: " + piece.getTotalHeight());
-                            writer.println("rotation: " + piece.getRotation());
-                            writer.println("neighbours: " + piece.getNeighbors().stream().map(Piece::getId).map(String::valueOf).collect(Collectors.joining(",")));
-                            writer.println();
-                        }
+                    try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(outPath.resolve("save.txt"), WRITE, TRUNCATE_EXISTING, CREATE)));
+                         ImageOutputStream piecesData = new MemoryCacheImageOutputStream(Files.newOutputStream(outPath.resolve("pieces.bin"), WRITE, TRUNCATE_EXISTING, CREATE))
+                    ) {
+                        writer.println("file: " + jigsaw.getParams().getFilename().getAbsolutePath());
+                        writer.println("pieces: " + jigsaw.getParams().getPieces());
+                        writer.println("cutter: " + jigsaw.getParams().getCutter().getName());
+                        writer.println("# piece: id, imageX, imageY, imageWidth, imageHeight, puzzleX, puzzleY, rotation, multipieceid, neighbours (list of ids)");
+                        writer.println("# multipiece: id, imageX, imageY, imageWidth, imageHeight, puzzleX, puzzleY, rotation");
+                        for (Piece piece : jigsaw.getPieces().getPieces()) {
+                            for (Piece subPiece : piece.getSubs()) {
+                                writer.println("piece: " + subPiece.getId() + ", "
+                                        + subPiece.getImageX() + ", " + subPiece.getImageY() + ", "
+                                        + subPiece.getImageWidth() + ", " + subPiece.getImageHeight() + ", "
+                                        + subPiece.getPuzzleX() + ", " + subPiece.getPuzzleY() + ", "
+                                        + subPiece.getRotation() + ", "
+                                        + (piece instanceof MultiPiece ? piece.getId() : -1) + ", "
+                                        + subPiece.getNeighbors().stream().map(Piece::getId).map(String::valueOf).collect(Collectors.joining(","))
+                                );
 
+                                int[] data = subPiece.getData();
+                                piecesData.writeInts(subPiece.getData(), 0, data.length);
+                            }
+                            if (piece instanceof MultiPiece) {
+                                MultiPiece subPiece = (MultiPiece) piece;
+                                writer.println("multipiece: " + subPiece.getId() + ", "
+                                        + subPiece.getImageX() + ", " + subPiece.getImageY() + ", "
+                                        + subPiece.getImageWidth() + ", " + subPiece.getImageHeight() + ", "
+                                        + subPiece.getPuzzleX() + ", " + subPiece.getPuzzleY() + ", "
+                                        + subPiece.getRotation()+", "
+                                        + subPiece.getNeighbors().stream().map(Piece::getId).map(String::valueOf).collect(Collectors.joining(","))
+                                );
+                            }
+                        }
                     }
+                    // write original image
+                    ImageIO.write(jigsaw.getImage(), "png", outPath.resolve("source.png").toFile());
+                    // write current solve state
+                    BufferedImage currentState = new BufferedImage(jigsaw.getWidth(), jigsaw.getHeight(), BufferedImage.TYPE_INT_ARGB);
+                    Graphics graphics = currentState.getGraphics();
+                    for (Piece piece : jigsaw.getPieces().getPieces()) {
+                        piece.draw(graphics);
+                    }
+                    graphics.dispose();
+                    ImageIO.write(currentState, "png", outPath.resolve("state.png").toFile());
+
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }
@@ -369,4 +393,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
             }
         }
     }
+
+
+
 }

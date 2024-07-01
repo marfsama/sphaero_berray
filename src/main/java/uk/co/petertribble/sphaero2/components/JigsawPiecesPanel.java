@@ -284,7 +284,7 @@ public class JigsawPiecesPanel extends JPanel {
         if (focusPiece == null) {
             return;
         }
-        Piece[] result = focusPiece.join();
+        Piece[] result = focusPiece.join(piecesBin.getIdProvider());
         if (result != null) {
             List<Piece> pieces = piecesBin.getPieces();
             Piece newPiece = result[0];

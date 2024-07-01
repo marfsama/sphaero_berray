@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.image.MemoryImageSource;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
 // ### Should Pieces be implemented as BufferedImages backed by Rasters,
 // rather than images backed by MemoryImageSources?
@@ -210,6 +211,14 @@ public class Piece {
 
     public Set<Piece> getNeighbors() {
         return neighbors;
+    }
+
+    public int[] getData() {
+        return origData;
+    }
+
+    public Set<Piece> getSubs() {
+        return Set.of(this);
     }
 
     /**
@@ -525,7 +534,7 @@ public class Piece {
      * if the array is non-null, the first Piece will be the new one;
      * subsequent Pieces will be the ones it was built from
      */
-    public Piece[] join() {
+    public Piece[] join(Supplier<Integer> idProvider) {
         Set<Piece> close = new HashSet<Piece>();
         for (Piece piece : neighbors) {
             if (piece.isCloseTo(this)) {
@@ -541,6 +550,7 @@ public class Piece {
         // currently in its list.  These might include other MultiPieces, which
         // wouldn't be in the new Piece's subpiece list.
         Piece newPiece = MultiPiece.join(this, close);
+        newPiece.id = idProvider.get();
         Piece[] ret = new Piece[close.size() + 2];
         ret[0] = newPiece;
         ret[1] = this;

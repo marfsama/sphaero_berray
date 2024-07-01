@@ -37,6 +37,29 @@ public class MultiPiece extends Piece {
      * @param totalHeight height of the entire puzzle in pixels
      * @param rotation    initial rotation
      */
+    public MultiPiece(int id, Set<Piece> subs,
+                      int imageX, int imageY,
+                      int imageWidth, int imageHeight,
+                      int totalWidth, int totalHeight,
+                      int rotation) {
+        this(subs, imageX, imageY, imageWidth, imageHeight,
+                totalWidth, totalHeight, rotation);
+        this.id = id;
+    }
+
+    /**
+     * Creates a new MultiPiece.
+     *
+     * @param subs        A set of Pieces used directly by MultiPiece,
+     *                    should not be modified afterward
+     * @param imageX      X position of image relative to entire puzzle
+     * @param imageY      Y position of image relative to entire puzzle
+     * @param imageWidth  width of original image
+     * @param imageHeight height of original image
+     * @param totalWidth  width of the entire puzzle in pixels
+     * @param totalHeight height of the entire puzzle in pixels
+     * @param rotation    initial rotation
+     */
     public MultiPiece(Set<Piece> subs,
                       int imageX, int imageY,
                       int imageWidth, int imageHeight,
@@ -46,6 +69,10 @@ public class MultiPiece extends Piece {
                 totalWidth, totalHeight);
         this.subs = subs;
         forceSetRotation(rotation);
+    }
+
+    public Set<Piece> getSubs() {
+        return subs;
     }
 
     // For a MultiPiece, original image size and data work differently.  Size

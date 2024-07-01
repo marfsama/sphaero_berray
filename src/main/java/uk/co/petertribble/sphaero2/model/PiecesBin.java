@@ -1,9 +1,12 @@
 package uk.co.petertribble.sphaero2.model;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 public class PiecesBin {
     private List<Piece> pieces;
+    private AtomicInteger idProvider = new AtomicInteger();
 
     public PiecesBin() {
         this.pieces = new ArrayList<>();
@@ -17,12 +20,18 @@ public class PiecesBin {
         return pieces;
     }
 
+    public Supplier<Integer> getIdProvider() {
+        return idProvider::getAndIncrement;
+    }
+
     public void setPieces(List<Piece> pieces) {
         this.pieces = pieces;
+        // find last piece id and set idProvider to the next id
+        int maxId = pieces.stream().mapToInt(Piece::getId).max().orElse(0);
+        idProvider.set(maxId);
     }
 
     public void shuffle(int width, int height) {
-        // Arrays.asList() doesn't work, so be explicit
         List<Piece> pieces = this.pieces;
         this.pieces = new ArrayList<>();
         Random random = new Random();

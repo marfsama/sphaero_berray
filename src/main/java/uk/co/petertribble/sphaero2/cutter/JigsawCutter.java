@@ -17,6 +17,15 @@ public abstract class JigsawCutter {
     public static final int DEFAULT_PIECES = 100;
     public static final int MIN_PIECES = 4;
     public static final int MAX_PIECES = 10000;
+
+    public static final JigsawCutter[] cutters = {
+            new Classic4Cutter(),
+            new ClassicCutter(),
+            new SquareCutter(),
+            new RectCutter(),
+            new QuadCutter(),
+    };
+
     public int prefPieces = DEFAULT_PIECES;
     public JProgressBar jp;
     public int iprogress;

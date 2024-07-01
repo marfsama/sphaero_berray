@@ -20,6 +20,10 @@ public class Jigsaw {
         this.params = params;
     }
 
+    public JigsawParam getParams() {
+        return params;
+    }
+
     public PiecesBin getPieces() {
         return pieces;
     }
@@ -50,11 +54,11 @@ public class Jigsaw {
     }
 
     public int getWidth() {
-        return image.getWidth();
+        return pieces.getWidth();
     }
 
     public int getHeight() {
-        return image.getHeight();
+        return pieces.getHeight();
     }
 
     // Copy pieces into zOrder, and randomize their positions.
@@ -71,7 +75,7 @@ public class Jigsaw {
     public void reset(JigsawCutter cutter) {
         Piece[] pieces = cutter.cut(image);
         this.pieces.setPieces(Arrays.asList(pieces));
-        shuffle(getWidth(), getHeight());
+        shuffle(image.getWidth(), image.getHeight());
     }
 
     /**
