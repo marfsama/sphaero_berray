@@ -7,6 +7,7 @@ import uk.co.petertribble.sphaero2.components.TimeLabel;
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.Jigsaw;
 import uk.co.petertribble.sphaero2.model.JigsawParam;
+import uk.co.petertribble.sphaero2.model.Piece;
 import uk.co.petertribble.sphaero2.model.PiecesBin;
 
 import javax.imageio.ImageIO;
@@ -16,9 +17,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Collectors;
+
+import static java.nio.file.StandardOpenOption.*;
 
 /**
  * JFrame that runs a JigsawPuzzle. This is the front end for
@@ -58,263 +62,308 @@ import java.io.IOException;
  */
 public class JigsawFrame extends JFrame implements ActionListener {
 
-    private JMenuBar jmb;
-    private JMenu jmh;
-    private JMenuItem newItem;
-    private JMenuItem exitItem;
-    private JMenuItem helpItem;
-    private JMenuItem aboutItem;
-    private JMenuItem pictureItem;
-    private Image image;
-    private Icon miniImage;
+  private JMenuBar jmb;
+  private JMenu jmh;
+  private JMenuItem newItem;
+  private JMenuItem exitItem;
+  private JMenuItem helpItem;
+  private JMenuItem aboutItem;
+  private JMenuItem pictureItem;
+  private Image image;
+  private Icon miniImage;
+  private Jigsaw jigsaw;
 
 
-    private int pHeight = 480;
-    private int pWidth = 640;
-    private SelectImagePanel selectImagePanel;
+  private int pHeight = 480;
+  private int pWidth = 640;
+  private SelectImagePanel selectImagePanel;
+  private JButton save;
 
-    /**
-     * Creates and displays a simple JFrame containing a jigsaw puzzle in a
-     * JScrollPane. The frame may be resized freely. If an image is supplied
-     * on the command line, it will be used; otherwise the user will be
-     * prompted.
-     *
-     * <h1>Command line arguments</h1>
-     *
-     * <pre>
-     * -p &lt;<i>number</i>&gt; Cut the picture into roughly this number of
-     * pieces.
-     * &lt;<i>filename</i>&gt; If this denotes an image file, it will be
-     * the target picture.  If it denotes a folder, it will be searched
-     * for a random file, which is subject to the rules above.
-     * Potentially any image file in any subfolder could be used. If an
-     * image file cannot be found this way after ten tries, the program
-     * halts.
-     * </pre>
-     *
-     * <p>100 pieces are created by default. If no filename is given, the
-     * current folder is used.
-     *
-     * <h1>Puzzle commands</h1>
-     *
-     * <p> Pieces can be dragged around with the mouse. The piece (or group
-     * of pieces) most recently dragged or clicked on is the active piece.
-     * Press R to rotate the active piece (or group) 90 degrees clockwise.
-     * Press E to rotate it 90 degrees counter-clockwise. (Case doesn't
-     * matter.) Press S to shuffle all the pieces around the panel randomly,
-     * keeping fitted pieces together. Pieces are fitted automatically if
-     * they are placed close enough, and are rotated the same way.
-     *
-     * @param image  the BufferedImage to use as the picture
-     * @param pieces the number of pieces to create
-     * @param cutter the JigsawCutter to be used to cut the image into pieces
+  /**
+   * Creates and displays a simple JFrame containing a jigsaw puzzle in a
+   * JScrollPane. The frame may be resized freely. If an image is supplied
+   * on the command line, it will be used; otherwise the user will be
+   * prompted.
+   *
+   * <h1>Command line arguments</h1>
+   *
+   * <pre>
+   * -p &lt;<i>number</i>&gt; Cut the picture into roughly this number of
+   * pieces.
+   * &lt;<i>filename</i>&gt; If this denotes an image file, it will be
+   * the target picture.  If it denotes a folder, it will be searched
+   * for a random file, which is subject to the rules above.
+   * Potentially any image file in any subfolder could be used. If an
+   * image file cannot be found this way after ten tries, the program
+   * halts.
+   * </pre>
+   *
+   * <p>100 pieces are created by default. If no filename is given, the
+   * current folder is used.
+   *
+   * <h1>Puzzle commands</h1>
+   *
+   * <p> Pieces can be dragged around with the mouse. The piece (or group
+   * of pieces) most recently dragged or clicked on is the active piece.
+   * Press R to rotate the active piece (or group) 90 degrees clockwise.
+   * Press E to rotate it 90 degrees counter-clockwise. (Case doesn't
+   * matter.) Press S to shuffle all the pieces around the panel randomly,
+   * keeping fitted pieces together. Pieces are fitted automatically if
+   * they are placed close enough, and are rotated the same way.
+   *
+   * @param image  the BufferedImage to use as the picture
+   * @param pieces the number of pieces to create
+   * @param cutter the JigsawCutter to be used to cut the image into pieces
+   */
+  public JigsawFrame(BufferedImage image, int pieces, JigsawCutter cutter) {
+    super("Jigsaw Puzzle");
+    initFrameWork();
+    init(image, cutter);
+  }
+
+  /**
+   * Prompt for an image to solve, with the given number of pieces
+   * and piece style.
+   */
+  public JigsawFrame() {
+    super("Jigsaw Puzzle");
+    initFrameWork();
+    initSelectImagePrompt();
+  }
+
+  private void initFrameWork() {
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+    this.selectImagePanel = new SelectImagePanel();
+    selectImagePanel.addPropertyChangeListener(event -> {
+      if (SelectImagePanel.JIGSAW_PARAMS.equals(event.getPropertyName())) {
+        JigsawParam params = (JigsawParam) event.getNewValue();
+        setupPuzzle(params);
+      }
+    });
+
+
+    JMenu jmf = new JMenu("File");
+    jmf.setMnemonic(KeyEvent.VK_F);
+
+    newItem = new JMenuItem("New Image", KeyEvent.VK_N);
+    newItem.addActionListener(this);
+    jmf.add(newItem);
+
+    jmf.addSeparator();
+
+    exitItem = new JMenuItem("Exit", KeyEvent.VK_X);
+    exitItem.addActionListener(this);
+    jmf.add(exitItem);
+
+    jmb = new JMenuBar();
+    jmb.add(jmf);
+    setJMenuBar(jmb);
+
+    setIconImage(new ImageIcon(this.getClass().getClassLoader()
+        .getResource("pixmaps/sphaero2.png")).getImage());
+
+    /*
+     * Create the help menu for the puzzle here, even though it's only
+     * visible in puzzle mode.
      */
-    public JigsawFrame(BufferedImage image, int pieces, JigsawCutter cutter) {
-        super("Jigsaw Puzzle");
-        initFrameWork();
-        init(image, cutter);
+    jmh = new JMenu("Help");
+    jmh.setMnemonic(KeyEvent.VK_H);
+    helpItem = new JMenuItem("Instructions", KeyEvent.VK_I);
+    helpItem.addActionListener(this);
+    jmh.add(helpItem);
+    aboutItem = new JMenuItem("About", KeyEvent.VK_A);
+    aboutItem.addActionListener(this);
+    jmh.add(aboutItem);
+    pictureItem = new JMenuItem("Show Picture", KeyEvent.VK_P);
+    pictureItem.addActionListener(this);
+    jmh.add(pictureItem);
+  }
+
+  private void init(BufferedImage image, JigsawCutter cutter) {
+    this.image = image;
+
+    this.jigsaw = new Jigsaw(image);
+
+
+    JigsawPanel puzzle = new JigsawPanel(jigsaw);
+    JPanel oldJigsawPane = new JPanel(new BorderLayout());
+    oldJigsawPane.add(new JScrollPane(puzzle));
+    TimeLabel tlabel = createStatusBar(oldJigsawPane);
+
+    JTabbedPane contentPane = new JTabbedPane();
+    contentPane.addTab("Old Puzzle", oldJigsawPane);
+
+    JigsawPiecesPanel newJigsawPane = new JigsawPiecesPanel();
+    contentPane.addTab("New Puzzle", new JScrollPane(newJigsawPane));
+
+    setContentPane(contentPane);
+    pack();
+
+    setSize(1024, 740);
+    setVisible(true);
+
+    // This doesn't quite work; I would prefer a modal dialog, but that
+    // completely blocks the app
+
+    JProgressBar jp = new JProgressBar();
+    jp.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
+    JDialog dialog = new JDialog(this, "Processing image.");
+    dialog.setContentPane(jp);
+    cutter.setJProgressBar(jp);
+    dialog.pack();
+    dialog.setLocationRelativeTo(this);
+    dialog.setVisible(true);
+    jigsaw.reset(cutter);
+    newJigsawPane.setPiecesBin(new PiecesBin(jigsaw.getPieces().getPieces()));
+    dialog.setVisible(false);
+    jmb.add(jmh);
+    repaint();
+    tlabel.start();
+    puzzle.setTimeLabel(tlabel);
+  }
+
+  private TimeLabel createStatusBar(JPanel ppanel) {
+    JPanel statusbar = new JPanel();
+    statusbar.setLayout(new FlowLayout(FlowLayout.RIGHT));
+    TimeLabel tlabel = new TimeLabel();
+    statusbar.add(new JLabel("Progress: 0% (5/5)"));
+    statusbar.add(Box.createHorizontalStrut(2));
+    statusbar.add(tlabel);
+    this.save = new JButton(new SaveAction());
+    statusbar.add(Box.createHorizontalStrut(2));
+    statusbar.add(save);
+
+
+    ppanel.add(statusbar, BorderLayout.SOUTH);
+    return tlabel;
+  }
+
+  private void initSelectImagePrompt() {
+    setContentPane(selectImagePanel);
+    setSize(pWidth, pHeight);
+    setVisible(true);
+  }
+
+  public static void main(String[] args) {
+    if (args.length == 0) {
+      new JigsawFrame();
+    }
+  }
+
+  private void showPrompt() {
+    getContentPane().removeAll();
+    jmb.remove(jmh);
+    jmb.revalidate();
+    miniImage = null;
+    System.gc();
+    initSelectImagePrompt();
+  }
+
+  private void showPicture() {
+    if (miniImage == null) {
+      miniImage = new ImageIcon(image.getScaledInstance(200, -1,
+          Image.SCALE_FAST));
+    }
+    JOptionPane.showMessageDialog(this, miniImage,
+        "Quick view", JOptionPane.PLAIN_MESSAGE);
+  }
+
+
+  private void setupPuzzle(JigsawParam params) {
+    // Get the image.
+    File file = params.getFilename();
+
+    if (!file.exists()) {
+      JOptionPane.showMessageDialog(this, "File does not exist.",
+          "Nonexistent file", JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    if (file.isDirectory()) {
+      try {
+        file = JigUtil.getRandomImageFile(file);
+      } catch (FileNotFoundException ex) {
+        JOptionPane.showMessageDialog(this,
+            "This folder contains no images.",
+            "Empty folder", JOptionPane.ERROR_MESSAGE);
+        return;
+      }
+    } else if (!JigUtil.isImage(file)) {
+      JOptionPane.showMessageDialog(this, "This is not an image file.",
+          "Invalid Image", JOptionPane.ERROR_MESSAGE);
+      return;
     }
 
-    /**
-     * Prompt for an image to solve, with the given number of pieces
-     * and piece style.
-     */
-    public JigsawFrame() {
-        super("Jigsaw Puzzle");
-        initFrameWork();
-        initSelectImagePrompt();
+    // Get the cutter and set its piece count
+    JigsawCutter cutter = params.getCutter();
+    int pieces = params.getPieces();
+    cutter.setPreferredPieceCount(pieces);
+
+    try {
+      BufferedImage image = ImageIO.read(file);
+      // FIXME this doesn't actually show the window properly until
+      // after the pieces have been cut???
+      // So the progress bar doesn't work either
+      init(JigUtil.resizedImage(image), cutter);
+    } catch (IOException e) {
+      JOptionPane.showMessageDialog(this, "Image file cannot be read.",
+          "Invalid Image", JOptionPane.ERROR_MESSAGE);
     }
-
-    private void initFrameWork() {
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        this.selectImagePanel = new SelectImagePanel();
-        selectImagePanel.addPropertyChangeListener(event -> {
-            if (SelectImagePanel.JIGSAW_PARAMS.equals(event.getPropertyName())) {
-                JigsawParam params = (JigsawParam) event.getNewValue();
-                setupPuzzle(params);
-            }
-        });
+  }
 
 
-        JMenu jmf = new JMenu("File");
-        jmf.setMnemonic(KeyEvent.VK_F);
-
-        newItem = new JMenuItem("New Image", KeyEvent.VK_N);
-        newItem.addActionListener(this);
-        jmf.add(newItem);
-
-        jmf.addSeparator();
-
-        exitItem = new JMenuItem("Exit", KeyEvent.VK_X);
-        exitItem.addActionListener(this);
-        jmf.add(exitItem);
-
-        jmb = new JMenuBar();
-        jmb.add(jmf);
-        setJMenuBar(jmb);
-
-        setIconImage(new ImageIcon(this.getClass().getClassLoader()
-                .getResource("pixmaps/sphaero2.png")).getImage());
-
-        /*
-         * Create the help menu for the puzzle here, even though it's only
-         * visible in puzzle mode.
-         */
-        jmh = new JMenu("Help");
-        jmh.setMnemonic(KeyEvent.VK_H);
-        helpItem = new JMenuItem("Instructions", KeyEvent.VK_I);
-        helpItem.addActionListener(this);
-        jmh.add(helpItem);
-        aboutItem = new JMenuItem("About", KeyEvent.VK_A);
-        aboutItem.addActionListener(this);
-        jmh.add(aboutItem);
-        pictureItem = new JMenuItem("Show Picture", KeyEvent.VK_P);
-        pictureItem.addActionListener(this);
-        jmh.add(pictureItem);
+  @Override
+  public void actionPerformed(ActionEvent e) {
+    if (e.getSource() == exitItem) {
+      System.exit(0);
+    } else if (e.getSource() == newItem) {
+      showPrompt();
+    } else if (e.getSource() == helpItem) {
+      JOptionPane.showMessageDialog(this, JigUtil.helpMsg(),
+          "Sphaero2 help", JOptionPane.PLAIN_MESSAGE);
+    } else if (e.getSource() == aboutItem) {
+      JOptionPane.showMessageDialog(this, JigUtil.aboutMsg(),
+          "About Sphaero2", JOptionPane.PLAIN_MESSAGE);
+    } else if (e.getSource() == pictureItem) {
+      showPicture();
     }
-
-    private void init(BufferedImage image, JigsawCutter cutter) {
-        this.image = image;
-
-        Jigsaw jigsaw = new Jigsaw(image);
+  }
 
 
-        JigsawPanel puzzle = new JigsawPanel(jigsaw);
-        JPanel oldJigsawPane = new JPanel(new BorderLayout());
-        oldJigsawPane.add(new JScrollPane(puzzle));
-        TimeLabel tlabel = createStatusBar(oldJigsawPane);
-
-        JTabbedPane contentPane = new JTabbedPane();
-        contentPane.addTab("Old Puzzle", oldJigsawPane);
-
-        JigsawPiecesPanel newJigsawPane = new JigsawPiecesPanel();
-        contentPane.addTab("new Puzzle", new JScrollPane(newJigsawPane));
-
-        setContentPane(contentPane);
-        pack();
-
-        setSize(1024, 740);
-        setVisible(true);
-
-        // This doesn't quite work; I would prefer a modal dialog, but that
-        // completely blocks the app
-
-        JProgressBar jp = new JProgressBar();
-        jp.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
-        JDialog dialog = new JDialog(this, "Processing image.");
-        dialog.setContentPane(jp);
-        cutter.setJProgressBar(jp);
-        dialog.pack();
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
-        jigsaw.reset(cutter);
-        newJigsawPane.setPiecesBin(new PiecesBin(jigsaw.getPieces().getPieces()));
-        dialog.setVisible(false);
-        jmb.add(jmh);
-        repaint();
-        tlabel.start();
-        puzzle.setTimeLabel(tlabel);
+  public class SaveAction extends AbstractAction {
+    public SaveAction() {
+      super("Save");
     }
-
-    private static TimeLabel createStatusBar(JPanel ppanel) {
-        JPanel statusbar = new JPanel();
-        statusbar.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        TimeLabel tlabel = new TimeLabel();
-        statusbar.add(new JLabel("Progress: 0% (5/5)"));
-        statusbar.add(Box.createHorizontalStrut(2));
-        statusbar.add(tlabel);
-        ppanel.add(statusbar, BorderLayout.SOUTH);
-        return tlabel;
-    }
-
-    private void initSelectImagePrompt() {
-        setContentPane(selectImagePanel);
-        setSize(pWidth, pHeight);
-        setVisible(true);
-    }
-
-    public static void main(String[] args) {
-        if (args.length == 0) {
-            new JigsawFrame();
-        }
-    }
-
-    private void showPrompt() {
-        getContentPane().removeAll();
-        jmb.remove(jmh);
-        jmb.revalidate();
-        miniImage = null;
-        System.gc();
-        initSelectImagePrompt();
-    }
-
-    private void showPicture() {
-        if (miniImage == null) {
-            miniImage = new ImageIcon(image.getScaledInstance(200, -1,
-                    Image.SCALE_FAST));
-        }
-        JOptionPane.showMessageDialog(this, miniImage,
-                "Quick view", JOptionPane.PLAIN_MESSAGE);
-    }
-
-
-    private void setupPuzzle(JigsawParam params) {
-        // Get the image.
-        File file = params.getFilename();
-
-        if (!file.exists()) {
-            JOptionPane.showMessageDialog(this, "File does not exist.",
-                    "Nonexistent file", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        if (file.isDirectory()) {
-            try {
-                file = JigUtil.getRandomImageFile(file);
-            } catch (FileNotFoundException ex) {
-                JOptionPane.showMessageDialog(this,
-                        "This folder contains no images.",
-                        "Empty folder", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-        } else if (!JigUtil.isImage(file)) {
-            JOptionPane.showMessageDialog(this, "This is not an image file.",
-                    "Invalid Image", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // Get the cutter and set its piece count
-        JigsawCutter cutter = params.getCutter();
-        int pieces = params.getPieces();
-        cutter.setPreferredPieceCount(pieces);
-
-        try {
-            BufferedImage image = ImageIO.read(file);
-            // FIXME this doesn't actually show the window properly until
-            // after the pieces have been cut???
-            // So the progress bar doesn't work either
-            init(JigUtil.resizedImage(image), cutter);
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Image file cannot be read.",
-                    "Invalid Image", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (e.getSource() == exitItem) {
-            System.exit(0);
-        } else if (e.getSource() == newItem) {
-            showPrompt();
-        } else if (e.getSource() == helpItem) {
-            JOptionPane.showMessageDialog(this, JigUtil.helpMsg(),
-                    "Sphaero2 help", JOptionPane.PLAIN_MESSAGE);
-        } else if (e.getSource() == aboutItem) {
-            JOptionPane.showMessageDialog(this, JigUtil.aboutMsg(),
-                    "About Sphaero2", JOptionPane.PLAIN_MESSAGE);
-        } else if (e.getSource() == pictureItem) {
-            showPicture();
+      if (jigsaw != null && !jigsaw.isFinished()) {
+        Path outPath = Path.of(System.getProperty("user.home"), ".sphaero");
+        try {
+          Files.createDirectories(outPath);
+          Path out = outPath.resolve("save.txt");
+          try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(out, WRITE, TRUNCATE_EXISTING, CREATE)))) {
+            for (var piece : jigsaw.getPieces().getPieces()) {
+              writer.println("id: " + piece.getId());
+              writer.println("x: " + piece.getImageX());
+              writer.println("y: " + piece.getImageY());
+              writer.println("puzzlex: " + piece.getPuzzleX());
+              writer.println("puzzley: " + piece.getPuzzleY());
+              writer.println("w: " + piece.getImageWidth());
+              writer.println("h: " + piece.getImageHeight());
+              writer.println("totalw: " + piece.getTotalWidth());
+              writer.println("totalh: " + piece.getTotalHeight());
+              writer.println("rotation: " + piece.getRotation());
+              writer.println("neighbours: " + piece.getNeighbors().stream().map(Piece::getId).map(String::valueOf).collect(Collectors.joining(",")));
+              writer.println();
+            }
+
+          }
+        } catch (IOException ex) {
+          throw new RuntimeException(ex);
         }
+
+      }
     }
+  }
 }

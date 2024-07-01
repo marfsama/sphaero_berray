@@ -204,6 +204,14 @@ public class Piece {
         return ((((0xff00 | r) << 8) | g) << 8) | b;
     }
 
+    public int getId() {
+        return id;
+    }
+
+    public Set<Piece> getNeighbors() {
+        return neighbors;
+    }
+
     /**
      * Returns this Piece's current rotation.  The rotation is given in
      * integer degrees clockwise, and will always be between 0 and 359
