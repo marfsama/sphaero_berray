@@ -8,14 +8,16 @@ import java.util.*;
 
 
 public class Jigsaw {
+    private final JigsawParam params;
     private final BufferedImage image;
     private Image finishedImage;
     // Last in list = topmost piece
     private PiecesBin pieces = new PiecesBin();
     private boolean finished;
 
-    public Jigsaw(BufferedImage image) {
+    public Jigsaw(JigsawParam params, BufferedImage image) {
         this.image = image;
+        this.params = params;
     }
 
     public PiecesBin getPieces() {
