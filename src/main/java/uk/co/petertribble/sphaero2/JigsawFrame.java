@@ -61,6 +61,8 @@ import static java.nio.file.StandardOpenOption.*;
  */
 public class JigsawFrame extends JFrame implements ActionListener {
 
+  public static final int THUMB_HEIGHT = 150;
+  public static final int THUMB_WIDTH = 150;
   private JMenuBar jmb;
   private JMenu jmh;
   private JMenuItem newItem;
@@ -310,7 +312,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
       // FIXME this doesn't actually show the window properly until
       // after the pieces have been cut???
       // So the progress bar doesn't work either
-      init(new Jigsaw(params, JigUtil.resizedImage(image)), true);
+      init(new Jigsaw(params, JigUtil.resizeImage(image)), true);
     } catch (IOException e) {
       JOptionPane.showMessageDialog(this, "Image file cannot be read.",
           "Invalid Image", JOptionPane.ERROR_MESSAGE);
@@ -337,6 +339,8 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
 
   public class SaveAction extends AbstractAction {
+
+
     public SaveAction() {
       super("Save");
     }
@@ -383,6 +387,9 @@ public class JigsawFrame extends JFrame implements ActionListener {
           }
           // write original image
           ImageIO.write(jigsaw.getImage(), "png", outPath.resolve("source.png").toFile());
+          BufferedImage thumbnail = JigUtil.resizeImage(jigsaw.getImage(), THUMB_WIDTH, THUMB_HEIGHT);
+          ImageIO.write(thumbnail, "png", outPath.resolve("thumb.png").toFile());
+
           // write current solve state
           BufferedImage currentState = new BufferedImage(jigsaw.getWidth(), jigsaw.getHeight(), BufferedImage.TYPE_INT_ARGB);
           Graphics graphics = currentState.getGraphics();
@@ -390,7 +397,11 @@ public class JigsawFrame extends JFrame implements ActionListener {
             piece.draw(graphics);
           }
           graphics.dispose();
-          ImageIO.write(currentState, "png", outPath.resolve("state.png").toFile());
+          BufferedImage currentStateThumbnail = JigUtil.resizeImage(currentState, THUMB_WIDTH, THUMB_HEIGHT);
+          ImageIO.write(currentStateThumbnail, "png", outPath.resolve("state.png").toFile());
+          thumbnail.flush();
+          currentState.flush();
+          currentStateThumbnail.flush();
 
         } catch (IOException ex) {
           throw new RuntimeException(ex);
