@@ -72,8 +72,8 @@ public class Jigsaw {
         }
     }
 
-    public void reset(JigsawCutter cutter) {
-        Piece[] pieces = cutter.cut(image);
+    public void reset() {
+        Piece[] pieces = getParams().getCutter().cut(image);
         this.pieces.setPieces(Arrays.asList(pieces));
         shuffle(image.getWidth(), image.getHeight());
     }
