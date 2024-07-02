@@ -301,7 +301,7 @@ public class SelectImagePanel extends JPanel implements ActionListener {
                         neighbours.put(id, neighbourIds);
 
                         // the sub pieces should already be read.
-                        Set<Piece> subPieces = new HashSet<Piece>();
+                        Set<Piece> subPieces = new HashSet<>();
                         List<Integer> subPieceIds = multipieces.get(id);
                         if (subPieceIds == null) {
                             System.out.println("multipiece " + id + " does not have subpieces");
@@ -314,6 +314,7 @@ public class SelectImagePanel extends JPanel implements ActionListener {
 
                         MultiPiece multiPiece = new MultiPiece(subPieces, imageX, imageY, imageWidth, imageHeight, originalImage.getWidth(), originalImage.getHeight(), rotation);
                         multiPiece.setPuzzlePosition(puzzleX, puzzleY);
+                        multiPiece.setId(id);
                         pieces.put(id, multiPiece);
                     }
                 }
