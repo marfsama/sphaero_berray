@@ -53,10 +53,10 @@ public class PiecesBin {
     }
 
     public int getWidth() {
-        return pieces.stream().mapToInt(p -> p.getRotatedX() + p.getCurrentWidth()).max().orElse(100);
+        return pieces.stream().mapToInt(p -> p.getPuzzleX() + p.getCurrentWidth()).max().orElse(100);
     }
 
     public int getHeight() {
-        return pieces.stream().mapToInt(p -> p.getRotatedY() + p.getCurrentHeight()).max().orElse(100);
+        return pieces.stream().mapToInt(p -> p.getPuzzleY() + p.getCurrentHeight()).max().orElse(100);
     }
 }

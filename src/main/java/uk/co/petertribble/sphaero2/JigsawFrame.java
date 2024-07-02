@@ -348,7 +348,12 @@ public class JigsawFrame extends JFrame implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
       if (jigsaw != null && !jigsaw.isFinished()) {
-        Path outPath = Path.of(System.getProperty("user.home"), ".sphaero");
+        String directory = jigsaw.getParams().getFilename().getName();
+        int pos = directory.lastIndexOf(".");
+        if (pos > 0 && pos < (directory.length() - 1)) { // If '.' is not the first or last character.
+          directory = directory.substring(0, pos);
+        }
+        Path outPath = Path.of(System.getProperty("user.home"), ".sphaero", directory);
         try {
           Files.createDirectories(outPath);
           try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(outPath.resolve("save.txt"), WRITE, TRUNCATE_EXISTING, CREATE)));
