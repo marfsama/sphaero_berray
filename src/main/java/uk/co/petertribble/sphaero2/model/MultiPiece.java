@@ -71,6 +71,7 @@ public class MultiPiece extends Piece {
         forceSetRotation(rotation);
     }
 
+    @Override
     public Set<Piece> getSubs() {
         return subs;
     }

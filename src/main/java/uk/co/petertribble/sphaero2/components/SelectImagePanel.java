@@ -212,22 +212,8 @@ public class SelectImagePanel extends JPanel implements ActionListener {
         }
     }
 
-    public class LoadAction extends AbstractAction {
-
-        public LoadAction() {
-            super("load last jigsaw");
-        }
-
-        @Override
-        public void actionPerformed(ActionEvent event) {
-            Path path = Path.of(System.getProperty("user.home"), ".sphaero");
-            if (!Files.exists(path)) {
-                System.out.println("no current save state");
-                return;
-            }
-            loadSavedState(path);
-
-        }
+    public void refresh() {
+        jigsawResumePanel.refresh();
     }
 
     private void loadSavedState(Path outPath) {
@@ -322,7 +308,11 @@ public class SelectImagePanel extends JPanel implements ActionListener {
                 for (int pieceId : neighbours.keySet()) {
                     Piece piece = pieces.get(pieceId);
                     for (int neighbourId : neighbours.get(pieceId)) {
-                        piece.getNeighbors().add(pieces.get(neighbourId));
+                        Piece e = pieces.get(neighbourId);
+                        if (e == null) {
+                            throw new IllegalStateException("cannot find neighbour "+neighbourId+" of piece "+pieceId);
+                        }
+                        piece.getNeighbors().add(e);
                     }
                 }
                 // post processing: remove pieces which are already part of a multipiece

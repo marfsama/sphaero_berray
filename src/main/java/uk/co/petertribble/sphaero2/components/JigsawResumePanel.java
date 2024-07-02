@@ -46,4 +46,9 @@ public class JigsawResumePanel extends JPanel implements ActionListener {
             actionListener.actionPerformed(new ActionEvent(this, e.getID(), e.getActionCommand()));
         }
     }
+
+    public void refresh() {
+        removeAll();
+        initComponents();
+    }
 }
