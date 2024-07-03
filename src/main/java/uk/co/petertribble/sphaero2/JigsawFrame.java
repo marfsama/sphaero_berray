@@ -357,17 +357,15 @@ public class JigsawFrame extends JFrame implements ActionListener {
         Path outPath = Path.of(System.getProperty("user.home"), ".sphaero", directory);
         try {
           Files.createDirectories(outPath);
-          /*try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(outPath.resolve("save.txt"), WRITE, TRUNCATE_EXISTING, CREATE)));
+          try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(outPath.resolve("save.txt"), WRITE, TRUNCATE_EXISTING, CREATE)));
                ImageOutputStream piecesData = new MemoryCacheImageOutputStream(Files.newOutputStream(outPath.resolve("pieces.bin"), WRITE, TRUNCATE_EXISTING, CREATE))
-          ) */{
-            PrintStream writer = System.out;
+          ) {
             writer.println("file: " + jigsaw.getParams().getFilename().getAbsolutePath());
             writer.println("pieces: " + jigsaw.getParams().getPieces());
             writer.println("cutter: " + jigsaw.getParams().getCutter().getName());
             writer.println("# piece: id, imageX, imageY, imageWidth, imageHeight, puzzleX, puzzleY, rotation, multipieceid, neighbours (list of ids)");
             writer.println("# multipiece: id, imageX, imageY, imageWidth, imageHeight, puzzleX, puzzleY, rotation");
             for (Piece piece : jigsaw.getPieces().getPieces()) {
-              System.out.println("   piece "+piece);
               for (Piece subPiece : piece.getSubs()) {
                 writer.println("piece: " + subPiece.getId() + ", "
                     + subPiece.getImageX() + ", " + subPiece.getImageY() + ", "
@@ -379,7 +377,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
                 );
 
                 int[] data = subPiece.getData();
-                //piecesData.writeInts(subPiece.getData(), 0, data.length);
+                piecesData.writeInts(subPiece.getData(), 0, data.length);
               }
               if (piece instanceof MultiPiece) {
                 MultiPiece subPiece = (MultiPiece) piece;

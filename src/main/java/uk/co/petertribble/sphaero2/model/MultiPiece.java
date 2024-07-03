@@ -1,6 +1,8 @@
 package uk.co.petertribble.sphaero2.model;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -167,6 +169,23 @@ public class MultiPiece extends Piece {
                 piece.removeNeighbor(other);
             }
             piece.addNeighbor(newPiece);
+        }
+
+        // if the main or one of the others are multipieces, remove those from the subs neighbours
+        List<Piece> multiPieces = new ArrayList<>();
+        if (main instanceof MultiPiece) {
+            multiPieces.add(main);
+        }
+        for (Piece other : others) {
+            if (other instanceof MultiPiece) {
+                multiPieces.add(other);
+            }
+        }
+
+        for (Piece sub : subs) {
+            for (Piece other : multiPieces) {
+                sub.removeNeighbor(other);
+            }
         }
 
         return newPiece;
