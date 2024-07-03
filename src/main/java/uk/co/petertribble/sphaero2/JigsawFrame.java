@@ -79,6 +79,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private int pWidth = 640;
   private SelectImagePanel selectImagePanel;
   private JButton save;
+  private JLabel progressLabel;
 
   /**
    * Creates and displays a simple JFrame containing a jigsaw puzzle in a
@@ -235,7 +236,8 @@ public class JigsawFrame extends JFrame implements ActionListener {
     JPanel statusbar = new JPanel();
     statusbar.setLayout(new FlowLayout(FlowLayout.RIGHT));
     TimeLabel tlabel = new TimeLabel();
-    statusbar.add(new JLabel("Progress: 0% (5/5)"));
+    this.progressLabel = new JLabel("Progress: 0% (5/5)");
+    statusbar.add(progressLabel);
     statusbar.add(Box.createHorizontalStrut(2));
     statusbar.add(tlabel);
     this.save = new JButton(new SaveAction());

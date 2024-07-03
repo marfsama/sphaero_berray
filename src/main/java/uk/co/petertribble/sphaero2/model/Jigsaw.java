@@ -5,6 +5,7 @@ import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.*;
+import java.util.List;
 
 
 public class Jigsaw {
@@ -22,6 +23,15 @@ public class Jigsaw {
 
     public JigsawParam getParams() {
         return params;
+    }
+
+    /** Returns the number of pieces which are already used in multipieces. these are considered "solved". */
+    public int getPiecesInMultipieces() {
+        return (int) pieces.getPieces().stream()
+                .filter(piece -> piece instanceof  MultiPiece)
+                .map(Piece::getSubs)
+                .mapToLong(Set::size)
+                .sum();
     }
 
     public PiecesBin getPieces() {

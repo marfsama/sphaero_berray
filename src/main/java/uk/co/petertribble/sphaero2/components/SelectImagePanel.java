@@ -310,9 +310,10 @@ public class SelectImagePanel extends JPanel implements ActionListener {
                     for (int neighbourId : neighbours.get(pieceId)) {
                         Piece e = pieces.get(neighbourId);
                         if (e == null) {
-                            throw new IllegalStateException("cannot find neighbour "+neighbourId+" of piece "+pieceId);
+                            System.out.println("cannot find neighbour "+neighbourId+" of piece "+pieceId);
+                        } else {
+                            piece.getNeighbors().add(e);
                         }
-                        piece.getNeighbors().add(e);
                     }
                 }
                 // post processing: remove pieces which are already part of a multipiece
