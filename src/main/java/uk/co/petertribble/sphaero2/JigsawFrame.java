@@ -1,9 +1,6 @@
 package uk.co.petertribble.sphaero2;
 
-import uk.co.petertribble.sphaero2.components.JigsawPanel;
-import uk.co.petertribble.sphaero2.components.JigsawPiecesPanel;
-import uk.co.petertribble.sphaero2.components.SelectImagePanel;
-import uk.co.petertribble.sphaero2.components.TimeLabel;
+import uk.co.petertribble.sphaero2.components.*;
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.*;
 
@@ -11,6 +8,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 import javax.swing.*;
+import javax.swing.border.BevelBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -193,6 +191,10 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private void init(Jigsaw jigsaw, boolean cut) {
     this.jigsaw = jigsaw;
 
+    JLayeredPane layeredPane = getLayeredPane();
+    JPanel testPanel = new InternalPanel("Preview");
+    testPanel.setBounds(100, 100, 200, 200);
+    layeredPane.add(testPanel, JLayeredPane.PALETTE_LAYER);
 
     JigsawPanel puzzle = new JigsawPanel(jigsaw);
     JPanel oldJigsawPane = new JPanel(new BorderLayout());
