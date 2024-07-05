@@ -19,6 +19,7 @@ public class JigsawPanel extends JigsawPiecesPanel {
 
     // this is the timer label
     private TimeLabel tlabel;
+    private JLabel progressLabel;
     private Jigsaw jigsaw;
 
     /**
@@ -57,9 +58,13 @@ public class JigsawPanel extends JigsawPiecesPanel {
         this.tlabel = tlabel;
     }
 
+    public void setProgressLabel(JLabel progressLabel) {
+        this.progressLabel = progressLabel;
+    }
 
     // ### Should this be public?
     private void finish() {
+        progressLabel.setText(jigsaw.getPiecesInMultipieces()+"/"+jigsaw.getParams().getPieces());
         if (!jigsaw.calculateFinished()) {
             return;
         }

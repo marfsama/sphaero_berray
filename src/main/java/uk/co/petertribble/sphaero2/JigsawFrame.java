@@ -78,6 +78,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private SelectImagePanel selectImagePanel;
   private JButton save;
   private JLabel progressLabel;
+  private TimeLabel tlabel;
 
   /**
    * Creates and displays a simple JFrame containing a jigsaw puzzle in a
@@ -204,7 +205,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     JigsawPanel puzzle = new JigsawPanel(jigsaw);
     JPanel oldJigsawPane = new JPanel(new BorderLayout());
     oldJigsawPane.add(new JScrollPane(puzzle));
-    TimeLabel tlabel = createStatusBar(oldJigsawPane);
+    createStatusBar(oldJigsawPane);
 
     JTabbedPane contentPane = new JTabbedPane();
     contentPane.addTab("Old Puzzle", oldJigsawPane);
@@ -237,12 +238,13 @@ public class JigsawFrame extends JFrame implements ActionListener {
     repaint();
     tlabel.start();
     puzzle.setTimeLabel(tlabel);
+    puzzle.setProgressLabel(progressLabel);
   }
 
-  private TimeLabel createStatusBar(JPanel ppanel) {
+  private void createStatusBar(JPanel ppanel) {
     JPanel statusbar = new JPanel();
     statusbar.setLayout(new FlowLayout(FlowLayout.RIGHT));
-    TimeLabel tlabel = new TimeLabel();
+    this.tlabel = new TimeLabel();
     this.progressLabel = new JLabel("Progress: 0% (5/5)");
     statusbar.add(progressLabel);
     statusbar.add(Box.createHorizontalStrut(2));
@@ -253,7 +255,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
 
     ppanel.add(statusbar, BorderLayout.SOUTH);
-    return tlabel;
   }
 
   private void initSelectImagePrompt() {
