@@ -8,7 +8,6 @@ import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
 import javax.swing.*;
-import javax.swing.border.BevelBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -193,14 +192,21 @@ public class JigsawFrame extends JFrame implements ActionListener {
     this.jigsaw = jigsaw;
 
     JLayeredPane layeredPane = getLayeredPane();
-    InternalPanel testPanel = new InternalPanel("Preview");
-    testPanel.setBounds(100, 100, 200, 200);
-    ImagePanel previewPanel = new ImagePanel();
-    previewPanel.setImage(jigsaw.getImage());
-    previewPanel.setScale(true);
-    previewPanel.setBackground(Color.BLACK);
-    testPanel.setContentPane(previewPanel);
-    layeredPane.add(testPanel, JLayeredPane.PALETTE_LAYER);
+    InternalPanel previewPanel = new InternalPanel("Preview");
+    previewPanel.setBounds(100, 100, 200, 200);
+    ImagePanel previewImagePanel = new ImagePanel();
+    previewImagePanel.setImage(jigsaw.getImage());
+    previewImagePanel.setScale(true);
+    previewImagePanel.setBackground(Color.BLACK);
+    previewPanel.setContentPane(previewImagePanel);
+    layeredPane.add(previewPanel, JLayeredPane.PALETTE_LAYER);
+
+    JigsawPiecesPanel binPiecesPanel = new JigsawPiecesPanel();
+    binPiecesPanel.setPiecesBin(jigsaw.getPieces());
+    InternalPanel binPanel = new InternalPanel("Edges");
+    binPanel.setBounds(100, 100, 200, 200);
+    binPanel.setContentPane(binPiecesPanel);
+    layeredPane.add(binPanel, JLayeredPane.PALETTE_LAYER);
 
     JigsawPanel puzzle = new JigsawPanel(jigsaw);
     JPanel oldJigsawPane = new JPanel(new BorderLayout());
