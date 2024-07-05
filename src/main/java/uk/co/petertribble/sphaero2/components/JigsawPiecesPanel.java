@@ -22,8 +22,10 @@ public class JigsawPiecesPanel extends JPanel {
     public static final char NEXT_BG = 'B';
     public static final char PUSH = 'P';
     public static final char CLEAR = 'C';
-    // hide for pause
-    public static final char HIDE = 'H';
+    public static final char SCALE_IN = '+';
+    public static final char SCALE_OUT = '-';
+
+    public float scale = 1.0f;
 
     // Available background colors
     private static final Color[] bgColors = {
@@ -140,8 +142,11 @@ public class JigsawPiecesPanel extends JPanel {
     }
 
     @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+    protected void paintComponent(Graphics graphics) {
+        super.paintComponent(graphics);
+
+        Graphics2D g = (Graphics2D) graphics.create();
+        g.scale(scale, scale);
 
         if (piecesBin == null) {
             return;
@@ -438,6 +443,10 @@ public class JigsawPiecesPanel extends JPanel {
             prevBackground();
         } else if (ch == NEXT_BG) {
             nextBackground();
+        } else if (ch == SCALE_IN) {
+            updateScale(scale * 1.5f);
+        } else if (ch == SCALE_OUT) {
+            updateScale(scale / 1.5f);
         }
         if (piecesBin == null) {
             return;
@@ -453,6 +462,11 @@ public class JigsawPiecesPanel extends JPanel {
         } else if (ch == CLEAR) {
             toggleClearMode();
         }
+    }
+
+    private void updateScale(float newScale) {
+        scale = newScale;
+        repaint();
     }
 
     void keyPressed0(KeyEvent e) {

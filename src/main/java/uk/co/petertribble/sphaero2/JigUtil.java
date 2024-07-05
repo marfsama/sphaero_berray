@@ -207,8 +207,6 @@ public final class JigUtil {
         "change background to next color")
         + tableLine(JigsawPanel.CLEAR,
         "toggle clear mode; mouse now drags over spaces to be cleared of pieces; cleared pieces are placed randomly elsewhere")
-        + tableLine(JigsawPanel.HIDE,
-        "toggle hidden mode to pause or unpause the puzzle")
         + "</table></html>";
   }
 }
