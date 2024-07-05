@@ -295,7 +295,7 @@ public class JigsawPiecesPanel extends JPanel {
         int prevH = focusPiece.getCurrentHeight();
         focusPiece.moveTo(jigsawX - transX, jigsawY - transY);
         // Repaint the focusPiece' previous and current bounding rects.
-        repaint(0, (int) (prevX*scale), (int) (prevY*scale), (int) (prevW*scale), (int) (prevH*scale));
+        repaint(0, (int) (prevX*scale), (int) (prevY*scale), (int) (prevW*scale)+1, (int) (prevH*scale)+1);
         repaint(0L, (int) (focusPiece.getPuzzleX()*scale), (int) (focusPiece.getPuzzleY()*scale),
             (int) (focusPiece.getCurrentWidth()*scale), (int) (focusPiece.getCurrentHeight()*scale));
     }
@@ -515,8 +515,8 @@ public class JigsawPiecesPanel extends JPanel {
         int currX = prevX + (prevW - currW) / 2;
         int currY = prevY + (prevH - currH) / 2;
         focusPiece.moveTo(currX, currY);
-        repaint(0, prevX, prevY, prevW, prevH);
-        repaint(0, currX, currY, currW, currH);
+        repaint(0, (int) (prevX*scale), (int) (prevY*scale), (int) (prevW*scale), (int) (prevH*scale));
+        repaint(0, (int) (currX*scale), (int) (currY*scale), (int) (currW*scale), (int) (currH*scale));
     }
 
     private void prevBackground() {

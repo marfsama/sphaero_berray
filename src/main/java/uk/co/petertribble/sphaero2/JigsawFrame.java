@@ -207,13 +207,9 @@ public class JigsawFrame extends JFrame implements ActionListener {
     oldJigsawPane.add(new JScrollPane(puzzle));
     createStatusBar(oldJigsawPane);
 
-    JTabbedPane contentPane = new JTabbedPane();
-    contentPane.addTab("Old Puzzle", oldJigsawPane);
-
     JigsawPiecesPanel newJigsawPane = new JigsawPiecesPanel();
-    contentPane.addTab("New Puzzle", new JScrollPane(newJigsawPane));
 
-    setContentPane(contentPane);
+    setContentPane(oldJigsawPane);
     pack();
 
     setSize(1024, 740);

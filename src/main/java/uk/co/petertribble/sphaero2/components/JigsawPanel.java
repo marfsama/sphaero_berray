@@ -69,6 +69,7 @@ public class JigsawPanel extends JigsawPiecesPanel {
             return;
         }
         jigsaw.setFinished();
+        scale = 1.0f;
         Piece lastPiece = jigsaw.getPieces().getPieces().get(0);
 
         // Auto-rotate the puzzle to its correct position.
