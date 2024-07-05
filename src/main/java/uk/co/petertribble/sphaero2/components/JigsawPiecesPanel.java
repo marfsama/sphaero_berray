@@ -211,7 +211,7 @@ public class JigsawPiecesPanel extends JPanel {
         int height = width * 3 / 5;
         width = Math.max(width, iWidth);
         height = Math.max(height, iHeight);
-        prefSize = new Dimension(width, height);
+        prefSize = new Dimension((int) (width*scale), (int) (height*scale));
     }
 
     // Mouse event handling -------------------------------------------------
@@ -326,15 +326,15 @@ public class JigsawPiecesPanel extends JPanel {
     }
 
     private void startClearRect(MouseEvent e) {
-        clearX0 = e.getX();
-        clearY0 = e.getY();
+        clearX0 = (int) (e.getX()/scale);
+        clearY0 = (int) (e.getY()/scale);
     }
 
     private void dragClearRect(MouseEvent e) {
         int prevX1 = clearX1;
         int prevY1 = clearY1;
-        clearX1 = e.getX();
-        clearY1 = e.getY();
+        clearX1 = (int) (e.getX()/scale);
+        clearY1 = (int) (e.getY()/scale);
         int x = Math.min(clearX0, prevX1);
         int y = Math.min(clearY0, prevY1);
         int w = Math.abs(clearX0 - prevX1);
@@ -348,8 +348,8 @@ public class JigsawPiecesPanel extends JPanel {
     }
 
     private void finishClearRect(MouseEvent e) {
-        clearX1 = e.getX();
-        clearY1 = e.getY();
+        clearX1 = (int) (e.getX()*scale);
+        clearY1 = (int) (e.getY()*scale);
         int cx0 = Math.max(0, Math.min(clearX0, clearX1));
         int cy0 = Math.max(0, Math.min(clearY0, clearY1));
         int cx1 = Math.min(getWidth(), Math.max(clearX0, clearX1));
@@ -481,7 +481,7 @@ public class JigsawPiecesPanel extends JPanel {
 
     private void updateScale(float newScale) {
         scale = newScale;
-        repaint();
+        revalidate();
     }
 
     void keyPressed0(KeyEvent e) {
