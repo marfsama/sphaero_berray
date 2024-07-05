@@ -27,6 +27,8 @@ public class JigsawPiecesPanel extends JPanel {
 
     public float scale = 1.0f;
 
+    public Point lastClick;
+
     // Available background colors
     private static final Color[] bgColors = {
             Color.BLACK,
@@ -156,6 +158,11 @@ public class JigsawPiecesPanel extends JPanel {
             piece.draw(g);
         }
 
+        if (lastClick != null) {
+            g.setColor(Color.WHITE);
+            g.drawArc(lastClick.x-10, lastClick.y-10, 20, 20, 0 , 360);
+        }
+
         if (clearMode && mouseDown) {
             int cx = Math.min(clearX0, clearX1);
             int cy = Math.min(clearY0, clearY1);
@@ -210,6 +217,12 @@ public class JigsawPiecesPanel extends JPanel {
     // Mouse event handling -------------------------------------------------
 
     protected void mousePressed0(MouseEvent e) {
+        int x = (int) (e.getX() / scale);
+        int y = (int) (e.getY() / scale);
+
+        this.lastClick = new Point(x,y);
+        repaint();
+
         requestFocus();
         if (piecesBin == null) {
             return;
@@ -246,27 +259,26 @@ public class JigsawPiecesPanel extends JPanel {
     }
 
     private void grabPiece(MouseEvent e) {
-        int x = e.getX();
-        int y = e.getY();
-
+        int jigsawX = (int) (e.getX() / scale);
+        int jigsawY = (int) (e.getY() / scale);
         focusPiece = null;
         List<Piece> pieces = piecesBin.getPieces();
         ListIterator<Piece> iter = pieces.listIterator(pieces.size());
         while (focusPiece == null && iter.hasPrevious()) {
             Piece piece = iter.previous();
-            if (piece.contains(x, y)) {
+            if (piece.contains(jigsawX, jigsawY)) {
                 focusPiece = piece;
                 iter.remove();
             }
         }
         if (focusPiece != null) {
             pieces.add(focusPiece);
-            transX = x - focusPiece.getPuzzleX();
-            transY = y - focusPiece.getPuzzleY();
+            transX = jigsawX - focusPiece.getPuzzleX();
+            transY = jigsawY - focusPiece.getPuzzleY();
             // The focusPiece might have moved up in Z-order. At worst, we have
             // to repaint its bounding rectangle.
-            repaint(0, focusPiece.getPuzzleX(), focusPiece.getPuzzleY(),
-                    focusPiece.getCurrentWidth(), focusPiece.getCurrentHeight());
+            repaint(0, (int) (focusPiece.getPuzzleX()*scale), (int) (focusPiece.getPuzzleY()*scale),
+                (int) (focusPiece.getCurrentWidth()*scale), (int) (focusPiece.getCurrentHeight()*scale));
         }
     }
 
@@ -274,15 +286,18 @@ public class JigsawPiecesPanel extends JPanel {
         if (focusPiece == null) {
             return;
         }
+        int jigsawX = (int) (e.getX() / scale);
+        int jigsawY = (int) (e.getY() / scale);
+
         int prevX = focusPiece.getPuzzleX();
         int prevY = focusPiece.getPuzzleY();
         int prevW = focusPiece.getCurrentWidth();
         int prevH = focusPiece.getCurrentHeight();
-        focusPiece.moveTo(e.getX() - transX, e.getY() - transY);
+        focusPiece.moveTo(jigsawX - transX, jigsawY - transY);
         // Repaint the focusPiece' previous and current bounding rects.
-        repaint(0, prevX, prevY, prevW, prevH);
-        repaint(0, focusPiece.getPuzzleX(), focusPiece.getPuzzleY(),
-                focusPiece.getCurrentWidth(), focusPiece.getCurrentHeight());
+        repaint(0, (int) (prevX*scale), (int) (prevY*scale), (int) (prevW*scale), (int) (prevH*scale));
+        repaint(0L, (int) (focusPiece.getPuzzleX()*scale), (int) (focusPiece.getPuzzleY()*scale),
+            (int) (focusPiece.getCurrentWidth()*scale), (int) (focusPiece.getCurrentHeight()*scale));
     }
 
     private void releasePiece() {
