@@ -20,22 +20,20 @@ public class InternalPanel extends JPanel {
     addMouseMotionListener(mouseAdapter);
 
     setLayout(new BorderLayout());
+    JLabel titleLabel = new JLabel(title, JLabel.CENTER);
+    titleLabel.setBackground(Color.BLUE);
+    titleLabel.setOpaque(true);
+    titleLabel.setForeground(Color.LIGHT_GRAY);
+    add(titleLabel, BorderLayout.NORTH);
   }
 
-  @Override
-  protected void paintComponent(Graphics g) {
-    super.paintComponent(g);
-    // paint title bar
-    var insets = getInsets();
-    var width = getWidth() - insets.left - insets.right;
-    g.setColor(Color.BLUE);
-    g.fillRect(0, 0, width, TITLEBAR_HEIGHT);
-    g.setFont(g.getFont().deriveFont(14f).deriveFont(Font.BOLD));
-    g.setColor(Color.LIGHT_GRAY);
-    Rectangle2D titleTextBounds = g.getFontMetrics().getStringBounds(title, g);
-    int x = (int) ((width - titleTextBounds.getWidth()) / 2);
-    g.drawString(title, x, TITLEBAR_HEIGHT - (int) (TITLEBAR_HEIGHT - 14f) / 2);
-
+  public void setContentPane(JComponent contentPane) {
+    Component centerComponent = ((BorderLayout) getLayout()).getLayoutComponent(BorderLayout.CENTER);
+    if (centerComponent != null) {
+      remove(centerComponent);
+    }
+    add(contentPane, BorderLayout.CENTER);
+    validate();
   }
 
   private static class MouseAdapter extends java.awt.event.MouseAdapter {

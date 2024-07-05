@@ -43,6 +43,14 @@ public class ImagePanel extends JPanel {
         this.image = image;
     }
 
+    public boolean isScale() {
+        return scale;
+    }
+
+    public void setScale(boolean scale) {
+        this.scale = scale;
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -63,16 +71,22 @@ public class ImagePanel extends JPanel {
             int height = Math.max(image.getHeight(), innerHeight);
 
             if (width > innerWidth) {
+                float factor = innerWidth / (float) width;
                 width = innerWidth;
-                height = (int) (height * imageAspectRatio);
+                height = (int) (height * factor);
             }
 
             if (height > innerHeight) {
+                float factor = innerHeight / (float) height;
                 height = innerHeight;
-                width = (int) (width / imageAspectRatio);
+                width = (int) (width * factor);
             }
 
-            g.drawImage(image, 0, 0, width, height, null);
+            // center image
+            int x = (innerWidth - width) / 2;
+            int y= (innerHeight - height) / 2;
+
+            g.drawImage(image, x, y, width, height, null);
         }
     }
 }

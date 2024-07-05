@@ -192,8 +192,13 @@ public class JigsawFrame extends JFrame implements ActionListener {
     this.jigsaw = jigsaw;
 
     JLayeredPane layeredPane = getLayeredPane();
-    JPanel testPanel = new InternalPanel("Preview");
+    InternalPanel testPanel = new InternalPanel("Preview");
     testPanel.setBounds(100, 100, 200, 200);
+    ImagePanel previewPanel = new ImagePanel();
+    previewPanel.setImage(jigsaw.getImage());
+    previewPanel.setScale(true);
+    previewPanel.setBackground(Color.BLACK);
+    testPanel.setContentPane(previewPanel);
     layeredPane.add(testPanel, JLayeredPane.PALETTE_LAYER);
 
     JigsawPanel puzzle = new JigsawPanel(jigsaw);
