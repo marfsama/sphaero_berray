@@ -12,7 +12,7 @@ import java.util.ListIterator;
 /**
  * Panel with pieces to display and solve. The pieces on this panel do not necessarily be all pieces of the jigsaw.
  */
-public class JigsawPiecesPanel extends JPanel {
+public class JigsawPiecesPanel extends JPanel implements PiecesPanel {
 
   public static final char ROTATE_LEFT = 'E';
   public static final char ROTATE_RIGHT = 'R';
@@ -559,4 +559,39 @@ public class JigsawPiecesPanel extends JPanel {
     return hsb[2] > 0.5;
   }
 
+  @Override
+  public int getZOrder() {
+    Container component = this;
+
+    do {
+      var parent = component.getParent();
+      if (parent instanceof JLayeredPane) {
+        JLayeredPane layeredPane = (JLayeredPane) parent;
+        return layeredPane.getLayer(component);
+      }
+      component = parent;
+    } while (component != null);
+
+    return 0;
+  }
+
+  @Override
+  public void setDragPiece(Piece piece) {
+
+  }
+
+  @Override
+  public void dropPiece(Piece piece) {
+
+  }
+
+  @Override
+  public Piece startDragPiece(Point p) {
+    return null;
+  }
+
+  @Override
+  public void finishDragPiece(Piece piece) {
+
+  }
 }

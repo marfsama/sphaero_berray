@@ -91,6 +91,8 @@ public class InternalPanel extends JPanel {
     private Corner resizeCorner = Corner.NONE;
     private Point dragStartMouse;
     private DragMode dragMode = DragMode.NONE;
+    private int MIN_WIDTH = 100;
+    private int MIN_HEIGHT = 20;
 
     public MouseAdapter(JPanel panel) {
       this.panel = panel;
@@ -153,6 +155,8 @@ public class InternalPanel extends JPanel {
         if (resizeCorner.isSouth()) {
           size.height = dragStartPanelSize.height + deltay;
         }
+        size.width = Math.max(size.width, MIN_WIDTH);
+        size.height = Math.max(size.height, MIN_HEIGHT);
         panel.setLocation(location);
         panel.setSize(size);
       }
