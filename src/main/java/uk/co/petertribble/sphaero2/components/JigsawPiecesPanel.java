@@ -173,6 +173,14 @@ public class JigsawPiecesPanel extends JPanel implements PiecesPanel {
     }
   }
 
+  public float getScale() {
+    return scale;
+  }
+
+  public void setScale(float scale) {
+    this.scale = scale;
+  }
+
   private void setClearMode(boolean flag) {
     clearMode = flag;
     setCursor(clearMode ? CLEAR_CURSOR : NORMAL_CURSOR);
@@ -239,7 +247,6 @@ public class JigsawPiecesPanel extends JPanel implements PiecesPanel {
     if (piecesBin == null) {
       return;
     }
-    System.out.println(getClass().getSimpleName() + ": " + e.getPoint());
 
     if (clearMode) {
       dragClearRect(e);
@@ -258,6 +265,18 @@ public class JigsawPiecesPanel extends JPanel implements PiecesPanel {
     } else {
       releasePiece();
     }
+  }
+
+  public Piece getPieceAt(Point p) {
+    int jigsawX = (int) (p.getX() / scale);
+    int jigsawY = (int) (p.getY() / scale);
+    List<Piece> pieces = piecesBin.getPieces();
+    for (Piece piece : pieces) {
+      if (piece.contains(jigsawX, jigsawY)) {
+        return piece;
+      }
+    }
+    return null;
   }
 
   private void grabPiece(MouseEvent e) {

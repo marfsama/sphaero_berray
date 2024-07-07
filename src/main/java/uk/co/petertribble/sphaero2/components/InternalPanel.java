@@ -103,7 +103,6 @@ public class InternalPanel extends JPanel {
       dragStartMouse = e.getLocationOnScreen();
       dragStartPanelLocation = panel.getLocation();
       dragStartPanelSize = panel.getSize();
-      System.out.println("pressed");
     }
 
     @Override
@@ -111,7 +110,6 @@ public class InternalPanel extends JPanel {
       dragStartMouse = null;
       panel.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
       dragMode = DragMode.NONE;
-      System.out.println("release");
     }
 
     @Override
@@ -131,7 +129,6 @@ public class InternalPanel extends JPanel {
           resizeCorner = Corner.NONE;
         }
       }
-      System.out.println("dragged " + dragMode + " " + e.getPoint() + " " + panel.getSize() + " " + resizeCorner+" "+panel.getInsets());
 
       int deltax = p.x - dragStartMouse.x;
       int deltay = p.y - dragStartMouse.y;

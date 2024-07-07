@@ -78,7 +78,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private JButton save;
   private JLabel progressLabel;
   private TimeLabel tlabel;
-  private DropManager dropManager = new DropManager();
+  private DragManager dragManager = new DragManager();
 
   /**
    * Creates and displays a simple JFrame containing a jigsaw puzzle in a
@@ -191,9 +191,11 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
   private void init(Jigsaw jigsaw, boolean cut) {
     this.jigsaw = jigsaw;
-    dropManager.clear();
+    dragManager.clear();
 
     JLayeredPane layeredPane = getLayeredPane();
+    layeredPane.add(dragManager, JLayeredPane.DRAG_LAYER);
+
     InternalPanel previewPanel = new InternalPanel("Preview");
     previewPanel.setBounds(100, 100, 200, 200);
     ImagePanel previewImagePanel = new ImagePanel();
@@ -214,7 +216,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     JPanel oldJigsawPane = new JPanel(new BorderLayout());
     oldJigsawPane.add(new JScrollPane(puzzle));
     createStatusBar(oldJigsawPane);
-    dropManager.addPiecesPanel(puzzle);
+    dragManager.addPiecesPanel(puzzle);
 
     JigsawPiecesPanel newJigsawPane = new JigsawPiecesPanel();
 

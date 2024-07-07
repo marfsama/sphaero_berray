@@ -4,13 +4,18 @@ import uk.co.petertribble.sphaero2.model.Piece;
 
 import java.awt.*;
 
-/** A panel which has pieces. */
+/**
+ * A panel which has pieces.
+ */
 public interface PiecesPanel {
 
-  /** Returns the name of the pieces panel. */
+  /**
+   * Returns the name of the pieces panel.
+   */
   String getName();
 
   Dimension getSize();
+
   Point getLocation();
 
   int getZOrder();
