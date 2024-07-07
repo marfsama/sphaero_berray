@@ -4,13 +4,11 @@ import uk.co.petertribble.sphaero2.model.Piece;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DragManager extends JPanel implements MouseListener, MouseMotionListener {
+public class DragManager extends JPanel implements MouseListener, MouseMotionListener, ComponentListener {
 
   /**
    * All panels which can have pieces. Sorted by z-order, first entry is the top panel.
@@ -30,6 +28,7 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
    * current position of the piece in absolute screen coordinates
    */
   private Point currentDraggedPosition;
+  private Point pieceRelativePos;
   /**
    * panel from which the piece is from.
    */
@@ -39,14 +38,20 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
    */
   private PiecesPanel lastPanel;
 
+  public DragManager() {
+    setOpaque(false);
+  }
+
   @Override
   protected void paintComponent(Graphics g) {
     super.paintComponent(g);
-    if (currentDraggedPiece != null && currentDraggedPosition != null) {
+    if (currentDraggedPosition != null && currentDraggedPiece != null) {
       Point locationOnScreen = this.getLocationOnScreen();
-      int x = currentDraggedPosition.x - locationOnScreen.x;
-      int y = currentDraggedPosition.y - locationOnScreen.y;
-      g.drawRect(x, y, 100, 100);
+      int x = currentDraggedPosition.x - locationOnScreen.x - pieceRelativePos.x;
+      int y = currentDraggedPosition.y - locationOnScreen.y - pieceRelativePos.y;
+      g.setColor(Color.MAGENTA);
+//      g.drawRect(x, y, currentDraggedPiece.getCurrentWidth(), currentDraggedPiece.getCurrentHeight());
+//      currentDraggedPiece.draw(g, x, y);
     }
   }
 
@@ -78,11 +83,17 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
     var source = e.getSource();
     if (source instanceof JigsawPiecesPanel) {
       JigsawPiecesPanel panel = (JigsawPiecesPanel) source;
-      this.currentDraggedPiece = panel.getPieceAt(e.getPoint());
-      this.currentDraggedPosition = e.getLocationOnScreen();
-      this.sourcePanel = panel;
-      System.out.println("clicked at " + currentDraggedPosition);
+      Point point = e.getPoint();
+      this.currentDraggedPiece = panel.getPieceAt(point);
+      if (currentDraggedPiece != null) {
+        this.currentDraggedPosition = e.getLocationOnScreen();
+        this.sourcePanel = panel;
+        int deltaX = (int) (point.x - currentDraggedPiece.getPuzzleX() * panel.getScale());
+        int deltaY = (int) (point.y - currentDraggedPiece.getPuzzleY() * panel.getScale());
+        this.pieceRelativePos = new Point(deltaX, deltaY);
+      }
     } else {
+      this.currentDraggedPosition = null;
       this.currentDraggedPiece = null;
     }
   }
@@ -106,14 +117,35 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
   public void mouseDragged(MouseEvent e) {
     if (!dragInProgress && currentDraggedPiece != null) {
       dragInProgress = true;
-      currentDraggedPosition = e.getLocationOnScreen();
-      repaint();
     }
-
+    currentDraggedPosition = e.getLocationOnScreen();
+    //System.out.println("dragged to " + currentDraggedPosition);
+    repaint();
   }
 
   @Override
   public void mouseMoved(MouseEvent e) {
+
+  }
+
+  @Override
+  public void componentResized(ComponentEvent e) {
+    setSize(e.getComponent().getSize());
+    invalidate();
+  }
+
+  @Override
+  public void componentMoved(ComponentEvent e) {
+
+  }
+
+  @Override
+  public void componentShown(ComponentEvent e) {
+
+  }
+
+  @Override
+  public void componentHidden(ComponentEvent e) {
 
   }
 }

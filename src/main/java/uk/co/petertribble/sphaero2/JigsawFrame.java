@@ -16,6 +16,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import static java.nio.file.StandardOpenOption.*;
@@ -194,7 +195,12 @@ public class JigsawFrame extends JFrame implements ActionListener {
     dragManager.clear();
 
     JLayeredPane layeredPane = getLayeredPane();
+    Component[] palettes = layeredPane.getComponentsInLayer(JLayeredPane.PALETTE_LAYER);
+    Arrays.stream(palettes).forEach(layeredPane::remove);
+
     layeredPane.add(dragManager, JLayeredPane.DRAG_LAYER);
+    dragManager.setSize(layeredPane.getSize());
+    layeredPane.addComponentListener(dragManager);
 
     InternalPanel previewPanel = new InternalPanel("Preview");
     previewPanel.setBounds(100, 100, 200, 200);

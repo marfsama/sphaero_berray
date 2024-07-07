@@ -271,7 +271,9 @@ public class JigsawPiecesPanel extends JPanel implements PiecesPanel {
     int jigsawX = (int) (p.getX() / scale);
     int jigsawY = (int) (p.getY() / scale);
     List<Piece> pieces = piecesBin.getPieces();
-    for (Piece piece : pieces) {
+    ListIterator<Piece> iter = pieces.listIterator(pieces.size());
+    while (iter.hasPrevious()) {
+      Piece piece = iter.previous();
       if (piece.contains(jigsawX, jigsawY)) {
         return piece;
       }

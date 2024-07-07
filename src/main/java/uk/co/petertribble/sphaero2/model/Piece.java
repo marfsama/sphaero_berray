@@ -468,11 +468,22 @@ public class Piece {
    * @param g the Graphics object to draw to
    */
   public void draw(Graphics g) {
+    draw(g, getPuzzleX(), getPuzzleY());
+  }
+
+  /**
+   * Draws this Piece in the given Graphics object.  The current image
+   * will be drawn, at this Piece's current puzzle position.
+   *
+   * @param g the Graphics object to draw to
+   */
+  public void draw(Graphics g, int x, int y) {
     Image img = getImage();
     if (img != null) {
-      g.drawImage(img, getPuzzleX(), getPuzzleY(), null);
+      g.drawImage(img, x, y, null);
     }
   }
+
 
   /**
    * Returns whether this Piece currently contains the given point,
