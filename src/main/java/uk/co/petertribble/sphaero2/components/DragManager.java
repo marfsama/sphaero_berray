@@ -7,6 +7,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 
 public class DragManager extends JPanel implements MouseListener, MouseMotionListener, ComponentListener {
 
@@ -32,11 +33,8 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
   /**
    * panel from which the piece is from.
    */
-  private PiecesPanel sourcePanel;
-  /**
-   * the last panel which has shown the dragged piece.
-   */
-  private PiecesPanel lastPanel;
+  private JigsawPiecesPanel sourcePanel;
+
 
   public DragManager() {
     setOpaque(false);
@@ -50,8 +48,8 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
       int x = currentDraggedPosition.x - locationOnScreen.x - pieceRelativePos.x;
       int y = currentDraggedPosition.y - locationOnScreen.y - pieceRelativePos.y;
       g.setColor(Color.MAGENTA);
-//      g.drawRect(x, y, currentDraggedPiece.getCurrentWidth(), currentDraggedPiece.getCurrentHeight());
-//      currentDraggedPiece.draw(g, x, y);
+      g.drawRect(x, y, currentDraggedPiece.getCurrentWidth(), currentDraggedPiece.getCurrentHeight());
+      currentDraggedPiece.draw(g, x, y);
     }
   }
 
@@ -64,7 +62,6 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
     dragInProgress = false;
     currentDraggedPiece = null;
     sourcePanel = null;
-    lastPanel = null;
   }
 
   public void addPiecesPanel(JigsawPiecesPanel piecesPanel) {
@@ -75,7 +72,6 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
 
   @Override
   public void mouseClicked(MouseEvent e) {
-
   }
 
   @Override
@@ -100,7 +96,30 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
 
   @Override
   public void mouseReleased(MouseEvent e) {
+    if (!dragInProgress) {
+      return;
+    }
     dragInProgress = false;
+    // get panel over which the mouse cursor is
+    Point locationOnScreen = e.getLocationOnScreen();
+    ListIterator<JigsawPiecesPanel> iterator = this.piecesPanels.listIterator(this.piecesPanels.size());
+    while (iterator.hasPrevious()) {
+      JigsawPiecesPanel panel = iterator.previous();
+      Point panelOnScreen = panel.getLocationOnScreen();
+      Dimension size = panel.getSize();
+      Point relativePos = new Point(locationOnScreen.x-panelOnScreen.x, locationOnScreen.y-panelOnScreen.y );
+      if (relativePos.x > 0 && relativePos.y > 0 && relativePos.x < size.width && relativePos.y < size.height) {
+        if (sourcePanel != panel) {
+          // drop piece in this panel
+          System.out.println("drop to " + panel.getPiecesBin().getName() + " @ " + relativePos);
+          currentDraggedPiece.setPuzzlePosition((int) (relativePos.x/panel.getScale()), (int) (relativePos.y/panel.getScale()));
+          panel.getPiecesBin().getPieces().add(currentDraggedPiece);
+          sourcePanel.getPiecesBin().getPieces().remove(currentDraggedPiece);
+          break;
+        }
+      }
+    }
+
   }
 
   @Override

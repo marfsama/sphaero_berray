@@ -1,23 +1,36 @@
 package uk.co.petertribble.sphaero2.model;
 
+import java.sql.Array;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 public class PiecesBin {
-  private List<Piece> pieces;
-  private AtomicInteger idProvider = new AtomicInteger();
+  private AtomicInteger idProvider;
 
-  public PiecesBin() {
-    this.pieces = new ArrayList<>();
+  private final String name;
+  private List<Piece> pieces;
+
+  public PiecesBin(PiecesBin piecesBin) {
+    this(piecesBin.idProvider, piecesBin.name, piecesBin.pieces);
   }
 
-  public PiecesBin(List<Piece> pieces) {
+  public PiecesBin(AtomicInteger idProvider, String name) {
+    this(idProvider, name, new ArrayList<>());
+  }
+
+  public PiecesBin(AtomicInteger idProvider, String name, List<Piece> pieces) {
     this.pieces = Objects.requireNonNull(pieces);
+    this.name = name;
+    this.idProvider = idProvider;
   }
 
   public List<Piece> getPieces() {
     return pieces;
+  }
+
+  public String getName() {
+    return name;
   }
 
   public Supplier<Integer> getIdProvider() {

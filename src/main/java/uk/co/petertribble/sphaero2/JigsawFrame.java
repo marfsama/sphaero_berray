@@ -194,6 +194,9 @@ public class JigsawFrame extends JFrame implements ActionListener {
     this.jigsaw = jigsaw;
     dragManager.clear();
 
+    jigsaw.getPiecesBins().clear();
+    jigsaw.addBin("Edges");
+
     JLayeredPane layeredPane = getLayeredPane();
     Component[] palettes = layeredPane.getComponentsInLayer(JLayeredPane.PALETTE_LAYER);
     Arrays.stream(palettes).forEach(layeredPane::remove);
@@ -211,22 +214,25 @@ public class JigsawFrame extends JFrame implements ActionListener {
     previewPanel.setContentPane(previewImagePanel);
     layeredPane.add(previewPanel, JLayeredPane.PALETTE_LAYER);
 
-    JigsawPiecesPanel binPiecesPanel = new JigsawPiecesPanel();
-    binPiecesPanel.setPiecesBin(jigsaw.getPieces());
-    InternalPanel binPanel = new InternalPanel("Edges");
-    binPanel.setBounds(100, 100, 200, 200);
-    binPanel.setContentPane(binPiecesPanel);
-    layeredPane.add(binPanel, JLayeredPane.PALETTE_LAYER);
-
     JigsawPanel puzzle = new JigsawPanel(jigsaw);
     JPanel oldJigsawPane = new JPanel(new BorderLayout());
     oldJigsawPane.add(new JScrollPane(puzzle));
     createStatusBar(oldJigsawPane);
     dragManager.addPiecesPanel(puzzle);
-
-    JigsawPiecesPanel newJigsawPane = new JigsawPiecesPanel();
-
     setContentPane(oldJigsawPane);
+
+    for (PiecesBin piecesBin : jigsaw.getPiecesBins()) {
+      JigsawPiecesPanel binPiecesPanel = new JigsawPiecesPanel();
+      binPiecesPanel.setScale(0.25f);
+      binPiecesPanel.setPiecesBin(piecesBin);
+      InternalPanel binPanel = new InternalPanel(piecesBin.getName());
+      binPanel.setBounds(100, 100, 200, 200);
+      binPanel.setContentPane(binPiecesPanel);
+      layeredPane.add(binPanel, JLayeredPane.PALETTE_LAYER);
+
+      dragManager.addPiecesPanel(binPiecesPanel);
+    }
+
     pack();
 
     setSize(1024, 740);
@@ -246,7 +252,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
       jigsaw.reset();
       dialog.setVisible(false);
     }
-    newJigsawPane.setPiecesBin(new PiecesBin(jigsaw.getPieces().getPieces()));
     jmb.add(jmh);
     repaint();
     tlabel.start();
