@@ -1,4 +1,4 @@
-package uk.co.petertribble.sphaero2.components;
+package uk.co.petertribble.sphaero2.components.play;
 
 import uk.co.petertribble.sphaero2.model.Piece;
 
@@ -22,7 +22,7 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
   private boolean dragInProgress = false;
 
   /**
-   * the piece which is currently draggde .
+   * the piece which is currently dragged .
    */
   private Piece currentDraggedPiece;
   /**
@@ -38,19 +38,6 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
 
   public DragManager() {
     setOpaque(false);
-  }
-
-  @Override
-  protected void paintComponent(Graphics g) {
-    super.paintComponent(g);
-    if (currentDraggedPosition != null && currentDraggedPiece != null) {
-      Point locationOnScreen = this.getLocationOnScreen();
-      int x = currentDraggedPosition.x - locationOnScreen.x - pieceRelativePos.x;
-      int y = currentDraggedPosition.y - locationOnScreen.y - pieceRelativePos.y;
-      g.setColor(Color.MAGENTA);
-      g.drawRect(x, y, currentDraggedPiece.getCurrentWidth(), currentDraggedPiece.getCurrentHeight());
-      currentDraggedPiece.draw(g, x, y);
-    }
   }
 
   public void clear() {

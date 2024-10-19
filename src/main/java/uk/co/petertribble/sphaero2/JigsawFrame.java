@@ -1,6 +1,8 @@
 package uk.co.petertribble.sphaero2;
 
 import uk.co.petertribble.sphaero2.components.*;
+import uk.co.petertribble.sphaero2.components.play.*;
+import uk.co.petertribble.sphaero2.components.select.SelectImagePanel;
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.*;
 

@@ -1,4 +1,4 @@
-package uk.co.petertribble.sphaero2.components;
+package uk.co.petertribble.sphaero2.components.select;
 
 
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
@@ -125,9 +125,10 @@ public class SelectImagePanel extends JPanel implements ActionListener {
     }
 
     JPanel resumePane = new JPanel();
+    resumePane.setLayout(new BorderLayout());
     this.jigsawResumePanel = new JigsawResumePanel(Path.of(System.getProperty("user.home")).resolve(".sphaero"));
     jigsawResumePanel.setActionListener(this);
-    resumePane.add(new JScrollPane(jigsawResumePanel), BorderLayout.CENTER);
+    resumePane.add(new JScrollPane(jigsawResumePanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS), BorderLayout.CENTER);
     resumePane.setBorder(createTitledBorder("Resume"));
 
 
@@ -191,6 +192,7 @@ public class SelectImagePanel extends JPanel implements ActionListener {
     chooser.setFileFilter(new JigFileFilter());
     chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
     chooser.setAccessory(new ImagePreview(chooser));
+    chooser.setFileView(new ImageFileView());
     if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       imageField.setText(chooser.getSelectedFile().getAbsolutePath());
       jigsawParams.setFilename(chooser.getSelectedFile());

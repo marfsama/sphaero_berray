@@ -1,4 +1,4 @@
-package uk.co.petertribble.sphaero2.components;
+package uk.co.petertribble.sphaero2.components.play;
 
 import uk.co.petertribble.sphaero2.model.Piece;
 import uk.co.petertribble.sphaero2.model.PiecesBin;

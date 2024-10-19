@@ -1,6 +1,6 @@
 package uk.co.petertribble.sphaero2;
 
-import uk.co.petertribble.sphaero2.components.JigsawPanel;
+import uk.co.petertribble.sphaero2.components.play.JigsawPanel;
 
 import javax.swing.*;
 import java.awt.*;

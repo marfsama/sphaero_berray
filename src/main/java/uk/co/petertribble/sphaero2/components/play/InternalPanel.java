@@ -1,4 +1,4 @@
-package uk.co.petertribble.sphaero2.components;
+package uk.co.petertribble.sphaero2.components.play;
 
 import javax.swing.*;
 import javax.swing.border.BevelBorder;

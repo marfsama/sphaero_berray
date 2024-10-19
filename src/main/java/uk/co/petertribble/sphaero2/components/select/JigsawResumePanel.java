@@ -1,4 +1,4 @@
-package uk.co.petertribble.sphaero2.components;
+package uk.co.petertribble.sphaero2.components.select;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;

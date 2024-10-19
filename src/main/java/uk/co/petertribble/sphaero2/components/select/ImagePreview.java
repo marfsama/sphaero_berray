@@ -29,7 +29,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package uk.co.petertribble.sphaero2.components;
+package uk.co.petertribble.sphaero2.components.select;
 
 import javax.swing.*;
 import java.awt.*;
@@ -60,10 +60,35 @@ public class ImagePreview extends JComponent implements PropertyChangeListener {
     // of this program's own resources.
     ImageIcon tmpIcon = new ImageIcon(file.getPath());
     if (tmpIcon.getIconWidth() > 90) {
-      thumbnail = new ImageIcon(tmpIcon.getImage().getScaledInstance(90, -1, Image.SCALE_DEFAULT));
+      thumbnail = new ImageIcon(tmpIcon.getImage().getScaledInstance(-1, getHeight(), Image.SCALE_DEFAULT));
     } else { // no need to miniaturize
       thumbnail = tmpIcon;
     }
+    revalidate();
+  }
+
+  @Override
+  public Dimension getPreferredSize() {
+    if (thumbnail != null) {
+      return new Dimension(thumbnail.getIconWidth(), thumbnail.getIconHeight());
+    }
+    return super.getPreferredSize();
+  }
+
+  @Override
+  public Dimension getMinimumSize() {
+    if (thumbnail != null) {
+      return new Dimension(thumbnail.getIconWidth(), thumbnail.getIconHeight());
+    }
+    return super.getMinimumSize();
+  }
+
+  @Override
+  public Dimension getMaximumSize() {
+    if (thumbnail != null) {
+      return new Dimension(thumbnail.getIconWidth(), thumbnail.getIconHeight());
+    }
+    return super.getMaximumSize();
   }
 
   @Override

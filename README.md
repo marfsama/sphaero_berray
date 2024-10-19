@@ -16,3 +16,20 @@ of the original sphaero, but isn't quite the same.
 There is no explicit license on the files, but the sourceforge project
 page says GPL, so I'm assuming that's what the license is. (Except for
 ImagePreview.java, which is copyrighted by Oracle.)
+
+
+TODO:
+* move panel with click and drag
+* select multiple pieces and move them
+* move piece(s) to another panel.
+* better file chooser
+* first dialog should show preview of selected image
+* crop selected image
+* hide cutting in finished pieces
+
+Reorder pieces:
+* stack selected pieces
+* unstack selected pieces
+* order by hue
+* order by number of knobs
+* 
