@@ -10,6 +10,9 @@ public class JigsawParam {
   private File filename;
 
   public JigsawParam() {
+    // default parameter
+    cutter = JigsawCutter.cutters[0];
+    pieces = 100;
   }
 
   public JigsawParam(JigsawParam other) {
@@ -19,6 +22,7 @@ public class JigsawParam {
   }
 
   public JigsawCutter getCutter() {
+    cutter.setPreferredPieceCount(pieces);
     return cutter;
   }
 

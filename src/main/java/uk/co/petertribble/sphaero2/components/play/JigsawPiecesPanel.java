@@ -6,8 +6,10 @@ import uk.co.petertribble.sphaero2.model.PiecesBin;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 
 /**
  * Panel with pieces to display and solve. The pieces on this panel do not necessarily be all pieces of the jigsaw.
@@ -154,8 +156,20 @@ public class JigsawPiecesPanel extends JPanel {
       return;
     }
 
+    Map<Integer, Piece> piecesMap = new HashMap<>();
+    piecesBin.getPieces().forEach(piece ->piecesMap.put(piece.getId(), piece));
+
     for (Piece piece : piecesBin.getPieces()) {
       piece.draw(g);
+    }
+    // draw lines from last piece to all its neighbors
+    if (piecesBin.getPieces().size() > 0) {
+      Piece lastPiece = piecesBin.getPieces().get(piecesBin.getPieces().size() - 1);
+      for (Piece neighbour : lastPiece.getNeighbors()) {
+        g.setColor(Color.GREEN);
+        g.drawLine(lastPiece.getPuzzleX()+lastPiece.getCurrentWidth()/2, lastPiece.getPuzzleY()+lastPiece.getCurrentHeight()/2,
+            neighbour.getPuzzleX()+neighbour.getCurrentWidth()/2, neighbour.getPuzzleY()+neighbour.getCurrentHeight()/2);
+      }
     }
 
     if (lastClick != null) {
@@ -327,20 +341,12 @@ public class JigsawPiecesPanel extends JPanel {
     if (focusPiece == null) {
       return;
     }
-    Piece[] result = focusPiece.join(piecesBin.getIdProvider());
-    if (result != null) {
-      List<Piece> pieces = piecesBin.getPieces();
-      Piece newPiece = result[0];
-      for (int i = 1; i < result.length; i++) {
-        pieces.remove(result[i]);
-      }
-      pieces.add(newPiece);
-      focusPiece = newPiece;
+    Piece newPiece = piecesBin.join(focusPiece);
+    if (newPiece != null) {
       // Joined pieces may be of any size and number. Mouse release isn't
-      // a terribly frequent event, so just repaint the whole thing.  If
-      // it's really necessary later, the thing to do would be to repaint
-      // the bounding rect for every piece in the result array above.
+      // a terribly frequent event, so just repaint the whole thing.
       repaint();
+      focusPiece = newPiece;
       pieceJoined(focusPiece);
     }
   }

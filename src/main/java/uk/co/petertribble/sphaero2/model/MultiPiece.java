@@ -243,7 +243,7 @@ public class MultiPiece extends Piece {
 
   // 4-way rotation -------------------------------------------------------
 
-  protected void recomputeImageData() {
+  public void recomputeImageData() {
     setRotatedPosition();
     // System.out.println ("recomputing: "+this);
     int[] data = new int[curWidth * curHeight];

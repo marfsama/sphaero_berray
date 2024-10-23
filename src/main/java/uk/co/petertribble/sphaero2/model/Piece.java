@@ -419,6 +419,17 @@ public class Piece {
   }
 
   /**
+   * Returns this Piece's original image
+   *
+   * @return this Piece's portion of the overall image
+   */
+  public Image getOriginalImage() {
+    return Toolkit.getDefaultToolkit().createImage(
+        new MemoryImageSource(origWidth, origHeight, origData, 0, origWidth));
+  }
+
+
+  /**
    * Adds a Piece to this Piece's set of neighbors.
    *
    * @param neighbor the Piece to add to this Piece's set of neighbors
@@ -617,7 +628,7 @@ public class Piece {
    * Recomputes this Piece's current image data and size from its original
    * image data and rotation.
    */
-  protected void recomputeImageData() {
+  public void recomputeImageData() {
     setRotatedPosition();
     if (rotation == 0) {
       curData = origData.clone();

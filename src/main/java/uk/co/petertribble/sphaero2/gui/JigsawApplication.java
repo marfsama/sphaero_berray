@@ -1,0 +1,223 @@
+package uk.co.petertribble.sphaero2.gui;
+
+import com.berray.BerrayApplication;
+import com.berray.GameObject;
+import com.berray.assets.CoreAssetShortcuts;
+import com.berray.components.CoreComponentShortcuts;
+import com.berray.components.core.AnchorType;
+import com.berray.event.Event;
+import com.berray.math.Color;
+import com.berray.math.Rect;
+import com.berray.math.Vec2;
+import com.raylib.Jaylib;
+import com.raylib.Raylib;
+import org.bytedeco.javacpp.FloatPointer;
+import uk.co.petertribble.sphaero2.model.Jigsaw;
+import uk.co.petertribble.sphaero2.model.JigsawParam;
+import uk.co.petertribble.sphaero2.model.Piece;
+import uk.co.petertribble.sphaero2.model.PiecesBin;
+
+import javax.imageio.ImageIO;
+import java.awt.Image;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.nio.FloatBuffer;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+
+import static com.raylib.Raylib.*;
+
+
+public class JigsawApplication extends BerrayApplication implements CoreAssetShortcuts, CoreComponentShortcuts {
+
+  private int pieceWidth;
+  private int pieceHeight;
+  private HashMap<Integer, PieceDescription> pieceDescriptions;
+  private float scale = 1.0f;
+
+  @Override
+  public void game() {
+    String imagePath = "/home/mato/project/games/sphaero2/jigsaw/portrait_of_aloy_by_gordon87_dgtr6jh.png";
+    //String imagePath = "/home/mato/project/games/sphaero2/jigsaw/sample.jpg";
+    BufferedImage sourceImage = getImage(imagePath);
+    JigsawParam params = new JigsawParam();
+    params.setFilename(new File(imagePath));
+    params.setPieces(20);
+    Jigsaw jigsaw = new Jigsaw(params, sourceImage);
+    System.out.println("cutting...");
+    jigsaw.reset(true, (int) (width() / scale), (int) (height() / scale));
+
+    System.out.println("creating pieces textures...");
+    List<BufferedImage> textures = createTextures(jigsaw.getPieces().getPieces());
+
+    for (Piece piece : jigsaw.getPieces().getPieces()) {
+      piece.setRotation(0);
+    }
+
+    System.out.println("uploading pieces textures...");
+    for (int index = 0; index < textures.size(); index++) {
+      loadSprite("pieces_" + index, textures.get(index));
+    }
+
+    Raylib.Shader shdrOutline = LoadShader(null, "/home/mato/project/games/sphaero2/src/main/resources/outline.fs");
+    float outlineSize[] = {1.0f};
+    float outlineColor[] = {1.0f, 0.0f, 0.0f, 1.0f};     // Normalized RED color
+    float textureSize[] = {1024, 1024};
+
+    // Get shader locations
+    int outlineSizeLoc = GetShaderLocation(shdrOutline, "outlineSize");
+    int outlineColorLoc = GetShaderLocation(shdrOutline, "outlineColor");
+    int textureSizeLoc = GetShaderLocation(shdrOutline, "textureSize");
+
+    // Set shader values (they can be changed later)
+    SetShaderValue(shdrOutline, outlineSizeLoc, new FloatPointer(FloatBuffer.wrap(outlineSize)), SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shdrOutline, outlineColorLoc, new FloatPointer(FloatBuffer.wrap(outlineColor)), SHADER_UNIFORM_VEC4);
+    SetShaderValue(shdrOutline, textureSizeLoc, new FloatPointer(FloatBuffer.wrap(textureSize)), SHADER_UNIFORM_VEC2);
+
+
+    var root = add(
+        pos(0, 0),
+        anchor(AnchorType.TOP_LEFT),
+        scale(scale)
+    );
+
+    ShaderNode shaderNode = root.add(
+        new ShaderNode(shdrOutline),
+        pos(0, 0),
+        anchor(AnchorType.TOP_LEFT)
+    );
+
+    shaderNode.add(
+        new PiecesComponent(jigsaw.getPieces(), pieceDescriptions),
+        pos(0, 0),
+        area(),
+        anchor(AnchorType.TOP_LEFT),
+        mouse()
+    );
+
+
+    onKeyPress(KEY_SPACE, event -> {
+      jigsaw.shuffle((int) (width()/scale), (int) (height()/scale));
+    });
+
+
+    add(
+        text(
+            "# Pieces: " + jigsaw.getPieces().getPieces().size() + "\n" +
+                "# Textures: " + textures.size()),
+        pos(0, 0),
+        anchor(AnchorType.TOP_LEFT),
+        color(Color.GOLD)
+    );
+
+
+//    root.add(
+//            new ShaderNode(shdrOutline)
+//        )
+//        .add(
+//            sprite("piece"),
+//            pos(-80, 0)
+//        );
+
+//    root.add(
+//        sprite("piece2"),
+//        pos(80, 0)
+//    );
+  }
+
+  private List<BufferedImage> createTextures(List<Piece> originalPieces) {
+    if (originalPieces.isEmpty()) {
+      throw new IllegalStateException("Jigsaw has no pieces. Did you forget to cut it?");
+    }
+    // sort pieces by width
+    List<Piece> pieces = new ArrayList<>(originalPieces);
+    pieces.sort(Comparator.comparingInt(Piece::getImageWidth)
+        .thenComparing(Piece::getImageHeight));
+
+    int textureSize = 1024;
+
+    List<BufferedImage> textures = new ArrayList<>();
+    this.pieceDescriptions = new HashMap<>();
+
+    int columnWidth = 0;
+    int currentY = 0;
+    int currentX = 0;
+    BufferedImage texture = new BufferedImage(textureSize, textureSize, BufferedImage.TYPE_INT_ARGB);
+    Graphics graphics = texture.createGraphics();
+
+    for (Piece piece : pieces) {
+      int width = piece.getImageWidth();
+      int height = piece.getImageHeight();
+      // check if the current column is full.
+      if (currentY + height > textureSize) {
+        // yes. start next column
+        currentY = 0;
+        currentX += columnWidth;
+        columnWidth = width;
+      }
+      // check if current image is full
+      if (currentX + width > textureSize) {
+        // yes. start new image
+        graphics.dispose();
+        textures.add(texture);
+        texture = new BufferedImage(textureSize, textureSize, BufferedImage.TYPE_INT_ARGB);
+        graphics = texture.createGraphics();
+        currentX = 0;
+      }
+
+      graphics.drawImage(piece.getOriginalImage(), currentX, currentY, null);
+      pieceDescriptions.put(piece.getId(), new PieceDescription(piece.getId(), textures.size(), new Rect(currentX, currentY, width, height)));
+      currentY += height;
+      columnWidth = Math.max(columnWidth, width);
+    }
+    // close last texture
+    graphics.dispose();
+    textures.add(texture);
+
+    return textures;
+  }
+
+  private static BufferedImage getImage(String filename) {
+    try {
+      return ImageIO.read(new File(filename));
+    } catch (IOException e) {
+      throw new IllegalStateException("cannot load image " + filename, e);
+    }
+  }
+
+  public static BufferedImage toBufferedImage(Image img) {
+    if (img instanceof BufferedImage) {
+      return (BufferedImage) img;
+    }
+
+    // Create a buffered image with transparency
+    BufferedImage bimage = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+
+    // Draw the image on to the buffered image
+    Graphics2D bGr = bimage.createGraphics();
+    bGr.drawImage(img, 0, 0, null);
+    bGr.dispose();
+
+    // Return the buffered image
+    return bimage;
+  }
+
+
+  @Override
+  public void initWindow() {
+    width(2000);
+    height(1200);
+    background(Color.GRAY);
+    title("Add Level Test");
+  }
+
+  public static void main(String[] args) {
+    new JigsawApplication().runGame();
+  }
+
+
+}

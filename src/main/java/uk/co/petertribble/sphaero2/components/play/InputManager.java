@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 
-public class DragManager extends JPanel implements MouseListener, MouseMotionListener, ComponentListener {
+public class InputManager extends JPanel implements MouseListener, MouseMotionListener, ComponentListener {
 
   /**
    * All panels which can have pieces. Sorted by z-order, first entry is the top panel.
@@ -36,14 +36,14 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
   private JigsawPiecesPanel sourcePanel;
 
 
-  public DragManager() {
+  public InputManager() {
     setOpaque(false);
   }
 
   public void clear() {
     piecesPanels.forEach(panel -> {
-      panel.removeMouseListener(DragManager.this);
-      panel.removeMouseMotionListener(DragManager.this);
+      panel.removeMouseListener(InputManager.this);
+      panel.removeMouseMotionListener(InputManager.this);
     });
     piecesPanels.clear();
     dragInProgress = false;
@@ -131,6 +131,10 @@ public class DragManager extends JPanel implements MouseListener, MouseMotionLis
 
   @Override
   public void mouseMoved(MouseEvent e) {
+    // find current position and piece
+    Point point = e.getPoint();
+    //sourcePanel.getMousePosition();
+
 
   }
 

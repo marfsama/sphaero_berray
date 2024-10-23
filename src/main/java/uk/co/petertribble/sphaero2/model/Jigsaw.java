@@ -87,7 +87,6 @@ public class Jigsaw {
     return pieces.getHeight();
   }
 
-  // Copy pieces into zOrder, and randomize their positions.
   public void shuffle(int width, int height) {
     pieces.shuffle(width, height);
 
@@ -99,9 +98,15 @@ public class Jigsaw {
   }
 
   public void reset() {
+    reset(true, image.getWidth(), image.getHeight());
+  }
+
+  public void reset(boolean shuffle, int width, int height) {
     Piece[] pieces = getParams().getCutter().cut(image);
     this.pieces.setPieces(Arrays.asList(pieces));
-    shuffle(image.getWidth(), image.getHeight());
+    if (shuffle) {
+      shuffle(width, height);
+    }
   }
 
   /**

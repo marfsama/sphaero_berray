@@ -81,7 +81,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private JButton save;
   private JLabel progressLabel;
   private TimeLabel tlabel;
-  private DragManager dragManager = new DragManager();
+  private InputManager inputManager = new InputManager();
 
   /**
    * Creates and displays a simple JFrame containing a jigsaw puzzle in a
@@ -194,7 +194,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
   private void init(Jigsaw jigsaw, boolean cut) {
     this.jigsaw = jigsaw;
-    dragManager.clear();
+    inputManager.clear();
 
     jigsaw.getPiecesBins().clear();
     jigsaw.addBin("Edges");
@@ -203,9 +203,9 @@ public class JigsawFrame extends JFrame implements ActionListener {
     Component[] palettes = layeredPane.getComponentsInLayer(JLayeredPane.PALETTE_LAYER);
     Arrays.stream(palettes).forEach(layeredPane::remove);
 
-    layeredPane.add(dragManager, JLayeredPane.DRAG_LAYER);
-    dragManager.setSize(layeredPane.getSize());
-    layeredPane.addComponentListener(dragManager);
+    layeredPane.add(inputManager, JLayeredPane.DRAG_LAYER);
+    inputManager.setSize(layeredPane.getSize());
+    layeredPane.addComponentListener(inputManager);
 
     InternalPanel previewPanel = new InternalPanel("Preview");
     previewPanel.setBounds(100, 100, 200, 200);
@@ -220,7 +220,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     JPanel oldJigsawPane = new JPanel(new BorderLayout());
     oldJigsawPane.add(new JScrollPane(puzzle));
     createStatusBar(oldJigsawPane);
-    dragManager.addPiecesPanel(puzzle);
+    inputManager.addPiecesPanel(puzzle);
     setContentPane(oldJigsawPane);
 
     for (PiecesBin piecesBin : jigsaw.getPiecesBins()) {
@@ -232,7 +232,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
       binPanel.setContentPane(binPiecesPanel);
       layeredPane.add(binPanel, JLayeredPane.PALETTE_LAYER);
 
-      dragManager.addPiecesPanel(binPiecesPanel);
+      inputManager.addPiecesPanel(binPiecesPanel);
     }
 
     pack();

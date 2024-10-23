@@ -11,6 +11,14 @@
         <maven.compiler.source>11</maven.compiler.source>
     </properties>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.berray</groupId>
+            <artifactId>berray</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
