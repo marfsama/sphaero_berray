@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 
+import static com.berray.objects.core.Label.label;
 import static com.raylib.Raylib.*;
 
 
@@ -53,10 +54,6 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
 
     System.out.println("creating pieces textures...");
     List<BufferedImage> textures = createTextures(jigsaw.getPieces().getPieces());
-
-    for (Piece piece : jigsaw.getPieces().getPieces()) {
-      piece.setRotation(0);
-    }
 
     System.out.println("uploading pieces textures...");
     for (int index = 0; index < textures.size(); index++) {
@@ -91,7 +88,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
         anchor(AnchorType.TOP_LEFT)
     );
 
-    shaderNode.add(
+    GameObject piecesNode = shaderNode.add(
         new PiecesComponent(jigsaw.getPieces(), pieceDescriptions),
         pos(0, 0),
         area(),
@@ -105,10 +102,12 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     });
 
 
-    add(
-        text(
+    root.add(
+        label(() ->
             "# Pieces: " + jigsaw.getPieces().getPieces().size() + "\n" +
-                "# Textures: " + textures.size()),
+            "# Textures: " + textures.size()+"\n"+
+            "# mouse pos: "+piecesNode.get("mousePos", null)
+        ),
         pos(0, 0),
         anchor(AnchorType.TOP_LEFT),
         color(Color.GOLD)

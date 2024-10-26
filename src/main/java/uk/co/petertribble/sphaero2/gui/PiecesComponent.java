@@ -2,17 +2,21 @@ package uk.co.petertribble.sphaero2.gui;
 
 import com.berray.GameObject;
 import com.berray.components.core.Component;
-import com.berray.event.Event;
+import com.berray.event.CoreEvents;
+import com.berray.event.KeyEvent;
+import com.berray.event.MouseEvent;
 import com.berray.math.Color;
 import com.berray.math.Rect;
 import com.berray.math.Vec2;
 import com.raylib.Jaylib;
+import com.raylib.Raylib;
 import uk.co.petertribble.sphaero2.model.MultiPiece;
 import uk.co.petertribble.sphaero2.model.Piece;
 import uk.co.petertribble.sphaero2.model.PiecesBin;
 
 import java.util.Map;
 
+import static com.berray.event.CoreEvents.*;
 import static com.raylib.Raylib.*;
 
 public class PiecesComponent extends Component {
@@ -21,11 +25,20 @@ public class PiecesComponent extends Component {
   private final Map<Integer, PieceDescription> pieceDescriptions;
   private DragMode dragMode;
   /**
-   * Position, where the mouse button was initially pressed down.
+   * Position, where the mouse button was initially pressed down, in game object coordinate space.
    */
   private Vec2 mouseDownPosition;
-  private Vec2 pieceStart;
+  /**
+   * Position, where the mouse button was initially pressed down, in window coordinate space.
+   */
+  private Vec2 mouseDownPositionWindow;
+  /**
+   * Position anchor at which the dragging started. This can be a piece (if a piece is dragged) or the game object
+   * (when the table is dragged).
+   */
+  private Vec2 dragStart;
   private Piece clickedPiece;
+  private Vec2 mousePos;
 
   public PiecesComponent(PiecesBin pieces, Map<Integer, PieceDescription> pieceDescriptions) {
     super("pieceBoard", "area");
@@ -39,29 +52,69 @@ public class PiecesComponent extends Component {
     registerGetter("render", () -> true);
     registerGetter("size", this::getSize);
 
-    on("mouseClick", this::onMouseClick);
-    on("mousePress", this::onMousePress);
-    on("dragStart", this::onDragStart);
-    on("dragFinish", this::onDragFinish);
-    on("dragging", this::onDragging);
+    on(MOUSE_CLICK, this::onMouseClick);
+    on(MOUSE_PRESS, this::onMousePress);
+    on(DRAG_START, this::onDragStart);
+    on(DRAG_FINISH, this::onDragFinish);
+    on(DRAGGING, this::onDragging);
+    onGame(KEY_PRESS, this::onKeyPress);
+    onGame(CoreEvents.KEY_DOWN, this::onKeyDown);
+    onGame(CoreEvents.KEY_UP, this::onKeyUp);
+
+
+    // debug
+    registerGetter("mousePos", () -> mousePos);
+    on(HOVER, (MouseEvent event) -> mousePos = event.getGameObjectPos());
   }
 
-  private void onMousePress(Event event) {
-    mouseDownPosition = event.getParameter(1);
+  private void onKeyUp(KeyEvent event) {
+    if (event.getKeyCode() == KEY_LEFT_SHIFT || event.getKeyCode() == KEY_RIGHT_SHIFT) {
+      Raylib.SetMouseCursor(Raylib.MOUSE_CURSOR_DEFAULT);
+    }
   }
 
-  private void onDragging(Event event) {
-    Vec2 clickPosition = event.getParameter(1);
+  private void onKeyDown(KeyEvent event) {
+    if (event.getKeyCode() == KEY_LEFT_SHIFT || event.getKeyCode() == KEY_RIGHT_SHIFT) {
+      Raylib.SetMouseCursor(Raylib.MOUSE_CURSOR_CROSSHAIR);
+    }
+  }
+
+  private void onKeyPress(KeyEvent event) {
+    switch (event.getKeyCode()) {
+      case KEY_E:
+        if (clickedPiece != null) {
+          clickedPiece.setRotation((clickedPiece.getRotation() + 90) % 360);
+        }
+        break;
+      case KEY_W:
+        if (clickedPiece != null) {
+          clickedPiece.setRotation((clickedPiece.getRotation() + 270) % 360);
+        }
+        break;
+    }
+
+  }
+
+  private void onMousePress(MouseEvent event) {
+    mouseDownPosition = event.getGameObjectPos();
+    mouseDownPositionWindow = event.getWindowPos();
+  }
+
+  private void onDragging(MouseEvent event) {
+    Vec2 clickPosition = event.getGameObjectPos();
     Vec2 delta = clickPosition.sub(mouseDownPosition);
 
     switch (dragMode) {
       case TABLE:
-        gameObject.doAction("moveBy", delta);
+        // table must be moved in window coordinate space
+        Vec2 windowDelta = event.getWindowPos().sub(mouseDownPositionWindow);
+        Vec2 pos = dragStart.add(windowDelta);
+        gameObject.set("pos", pos);
         break;
       case SELECTED_PIECES:
         Vec2 anchor = pieces.getSelectedAnchor();
         // calculate vector by which we moved the pieces already
-        var alreadyMoved = anchor.sub(pieceStart);
+        var alreadyMoved = anchor.sub(dragStart);
         // calculate delta to total drag vector
         // this is the amount we need to move the selection
         var selectedDelta = delta.sub(alreadyMoved);
@@ -70,14 +123,14 @@ public class PiecesComponent extends Component {
         }
         break;
       case SINGLE_PIECE:
-        float x = pieceStart.getX() + delta.getX();
-        float y = pieceStart.getY() + delta.getY();
+        float x = dragStart.getX() + delta.getX();
+        float y = dragStart.getY() + delta.getY();
         pieces.movePieceTo(clickedPiece, (int) x, (int) y);
         break;
     }
   }
 
-  private void onDragFinish(Event event) {
+  private void onDragFinish(MouseEvent event) {
     switch (dragMode) {
       case SINGLE_PIECE:
         pieces.join(clickedPiece);
@@ -91,35 +144,46 @@ public class PiecesComponent extends Component {
     this.dragMode = DragMode.NONE;
   }
 
-  private void onDragStart(Event event) {
+  private void onDragStart(MouseEvent event) {
     Vec2 clickPosition = mouseDownPosition;
     this.clickedPiece = pieces.getPieceAt((int) clickPosition.getX(), (int) clickPosition.getY());
     if (clickedPiece == null) {
       this.dragMode = DragMode.TABLE;
+      this.dragStart = gameObject.get("pos");
     } else {
       // a piece was clicked.
       if (pieces.isSelected(clickedPiece)) {
         dragMode = DragMode.SELECTED_PIECES;
-        pieceStart = pieces.getSelectedAnchor();
+        dragStart = pieces.getSelectedAnchor();
       } else {
         pieces.clearSelection();
         pieces.moveToTop(clickedPiece);
         dragMode = DragMode.SINGLE_PIECE;
-        pieceStart = new Vec2(clickedPiece.getPuzzleX(), clickedPiece.getPuzzleY());
+        dragStart = new Vec2(clickedPiece.getPuzzleX(), clickedPiece.getPuzzleY());
       }
     }
   }
 
-  private void onMouseClick(Event event) {
-    Vec2 clickPosition = event.getParameter(1);
+  private void onMouseClick(MouseEvent event) {
+    Vec2 clickPosition = event.getGameObjectPos();
     Vec2 mouseMoved = mouseDownPosition.sub(clickPosition);
 
     // only accept click when the mouse was not moved (else it is a drag)
+    MouseEvent.ButtonState leftButton = event.getButtonState(MouseEvent.Button.LEFT);
     if (mouseMoved.lengthSquared() < 0.1f) {
-      Piece clickedPiece = pieces.getPieceAt((int) clickPosition.getX(), (int) clickPosition.getY());
-      if (clickedPiece != null) {
-        this.clickedPiece = clickedPiece;
-        pieces.moveToTop(clickedPiece);
+      if (leftButton == MouseEvent.ButtonState.RELEASED_AND_UP) {
+        Piece clickedPiece = pieces.getPieceAt((int) clickPosition.getX(), (int) clickPosition.getY());
+        if (clickedPiece != null) {
+          this.clickedPiece = clickedPiece;
+          pieces.moveToTop(clickedPiece);
+        }
+      }
+      if (event.getButtonState(MouseEvent.Button.RIGHT) == MouseEvent.ButtonState.RELEASED_AND_UP) {
+        Piece clickedPiece = pieces.getPieceAt((int) clickPosition.getX(), (int) clickPosition.getY());
+        if (clickedPiece != null) {
+          clickedPiece.setRotation((clickedPiece.getRotation() + 90) % 360);
+        }
+
       }
     }
   }
@@ -184,6 +248,8 @@ public class PiecesComponent extends Component {
         case 270:
           y += piece.getImageWidth();
           break;
+        default:
+          throw new IllegalStateException("illegal piece rotation: " + piece.getRotation() + " in piece " + piece);
       }
 
       if (highlight) {
