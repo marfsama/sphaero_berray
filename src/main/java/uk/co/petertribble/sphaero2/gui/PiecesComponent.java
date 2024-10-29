@@ -2,9 +2,7 @@ package uk.co.petertribble.sphaero2.gui;
 
 import com.berray.GameObject;
 import com.berray.components.core.Component;
-import com.berray.event.CoreEvents;
-import com.berray.event.KeyEvent;
-import com.berray.event.MouseEvent;
+import com.berray.event.*;
 import com.berray.math.Color;
 import com.berray.math.Rect;
 import com.berray.math.Vec2;
@@ -40,8 +38,11 @@ public class PiecesComponent extends Component {
   private Piece clickedPiece;
   private Vec2 mousePos;
 
+  /** scale ranges from 1 - 5, where 10 is original scale. Smaller values is zoom out. */
+  private int scaleFactor = 10;
+
   public PiecesComponent(PiecesBin pieces, Map<Integer, PieceDescription> pieceDescriptions) {
-    super("pieceBoard", "area");
+    super("pieceBoard", "area", "pos", "scale");
     this.pieces = pieces;
     this.pieceDescriptions = pieceDescriptions;
   }
@@ -54,6 +55,7 @@ public class PiecesComponent extends Component {
 
     on(MOUSE_CLICK, this::onMouseClick);
     on(MOUSE_PRESS, this::onMousePress);
+    on(MOUSE_WHEEL_MOVE, this::onMouseWheelMove);
     on(DRAG_START, this::onDragStart);
     on(DRAG_FINISH, this::onDragFinish);
     on(DRAGGING, this::onDragging);
@@ -61,10 +63,37 @@ public class PiecesComponent extends Component {
     onGame(CoreEvents.KEY_DOWN, this::onKeyDown);
     onGame(CoreEvents.KEY_UP, this::onKeyUp);
 
+    // override bounding box so we get all mouse events.
+    registerGetter("boundingBox", () -> new Rect(0,0, gameObject.getGame().width(), gameObject.getGame().height()));
+
+    registerBoundProperty("scaleFactor", this::getScaleFactor, this::setScaleFactor);
 
     // debug
     registerGetter("mousePos", () -> mousePos);
     on(HOVER, (MouseEvent event) -> mousePos = event.getGameObjectPos());
+  }
+
+  public int getScaleFactor() {
+    return scaleFactor;
+  }
+
+  public void setScaleFactor(int scaleFactor) {
+    this.scaleFactor = scaleFactor;
+  }
+
+  private void onMouseWheelMove(MouseWheelEvent event) {
+    System.out.println("mouse wheel delta: "+event.getWheelDelta());
+    scaleFactor += event.getWheelDelta();
+    if (scaleFactor < 1) {
+      scaleFactor = 1;
+    }
+    if (scaleFactor > 15) {
+      scaleFactor = 15;
+    }
+
+    float scale = scaleFactor / 10.0f;
+
+    gameObject.set("scale", new Vec2(scale, scale));
   }
 
   private void onKeyUp(KeyEvent event) {
@@ -133,7 +162,10 @@ public class PiecesComponent extends Component {
   private void onDragFinish(MouseEvent event) {
     switch (dragMode) {
       case SINGLE_PIECE:
-        pieces.join(clickedPiece);
+        Piece newPiece = pieces.join(clickedPiece);
+        if (newPiece != null) {
+          clickedPiece = newPiece;
+        }
         break;
       case SELECTED_PIECES:
         for (Piece piece : pieces.getSelected()) {
@@ -171,6 +203,7 @@ public class PiecesComponent extends Component {
     // only accept click when the mouse was not moved (else it is a drag)
     MouseEvent.ButtonState leftButton = event.getButtonState(MouseEvent.Button.LEFT);
     if (mouseMoved.lengthSquared() < 0.1f) {
+      // left mouse clicked: move piece to top
       if (leftButton == MouseEvent.ButtonState.RELEASED_AND_UP) {
         Piece clickedPiece = pieces.getPieceAt((int) clickPosition.getX(), (int) clickPosition.getY());
         if (clickedPiece != null) {
@@ -178,12 +211,12 @@ public class PiecesComponent extends Component {
           pieces.moveToTop(clickedPiece);
         }
       }
+      // right klick: rotate piece clockwise
       if (event.getButtonState(MouseEvent.Button.RIGHT) == MouseEvent.ButtonState.RELEASED_AND_UP) {
         Piece clickedPiece = pieces.getPieceAt((int) clickPosition.getX(), (int) clickPosition.getY());
         if (clickedPiece != null) {
           clickedPiece.setRotation((clickedPiece.getRotation() + 90) % 360);
         }
-
       }
     }
   }
@@ -197,6 +230,7 @@ public class PiecesComponent extends Component {
     rlPushMatrix();
     {
       rlMultMatrixf(gameObject.getWorldTransform().toFloatTransposed());
+
 
       for (Piece piece : pieces.getPieces()) {
         if (piece instanceof MultiPiece) {
@@ -212,16 +246,17 @@ public class PiecesComponent extends Component {
 
             drawPiece(subPiece, piece.getPuzzleX() + deltaX, piece.getPuzzleY() + deltaY, pieces.isSelected(piece), false);
           }
-          // DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
+          //DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
         } else {
           drawPiece(piece, piece.getPuzzleX(), piece.getPuzzleY(), pieces.isSelected(piece), false);
         }
       }
-
+      // draw bounding box
+      //Rect boundingBox = gameObject.getBoundingBox();
+      //DrawRectangleLines((int) boundingBox.getX(), (int) boundingBox.getY(), (int) boundingBox.getWidth(), (int) boundingBox.getHeight(), Jaylib.BLACK);
 
     }
     rlPopMatrix();
-
   }
 
   private void drawPiece(Piece piece, int x, int y, boolean selected, boolean highlight) {
@@ -234,34 +269,24 @@ public class PiecesComponent extends Component {
       }
 
       Rect texturePosition = pieceDescription.getTexturePosition();
-      switch (piece.getRotation()) {
-        case 0:
-          // everything is ok
-          break;
-        case 90:
-          x += piece.getImageHeight();
-          break;
-        case 180:
-          x += piece.getImageWidth();
-          y += piece.getImageHeight();
-          break;
-        case 270:
-          y += piece.getImageWidth();
-          break;
-        default:
-          throw new IllegalStateException("illegal piece rotation: " + piece.getRotation() + " in piece " + piece);
-      }
-
-      if (highlight) {
-        DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
-      }
+      Vec2 center = new Vec2(piece.getImageWidth() / 2.0f, piece.getImageHeight() / 2.0f);
+      Vec2 centerRotated = new Vec2(piece.getCurrentWidth() / 2.0f, piece.getCurrentHeight() / 2.0f);
 
       DrawTexturePro(texture,
           texturePosition.toRectangle(),
-          new Rect(x, y, piece.getImageWidth(), piece.getImageHeight()).toRectangle(),
-          Vec2.origin().toVector2(),
+          new Rect(x + centerRotated.getX(), y + centerRotated.getY(), piece.getImageWidth(), piece.getImageHeight()).toRectangle(),
+          center.toVector2(),
           piece.getRotation(),
           color.toRaylibColor());
+
+      if (highlight) {
+        DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
+        DrawLine(piece.getPuzzleX(), piece.getPuzzleY(), piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY() + piece.getCurrentHeight(), Jaylib.GOLD);
+        DrawLine(piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY(), piece.getPuzzleX(), piece.getPuzzleY() + piece.getCurrentHeight(), Jaylib.GOLD);
+
+        DrawCircle((int) (piece.getPuzzleX() + centerRotated.getX()), (int) (piece.getPuzzleY() + centerRotated.getY()), 5.0f, Jaylib.GOLD);
+      }
     }
+
   }
 }

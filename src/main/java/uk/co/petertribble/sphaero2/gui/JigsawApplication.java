@@ -5,17 +5,16 @@ import com.berray.GameObject;
 import com.berray.assets.CoreAssetShortcuts;
 import com.berray.components.CoreComponentShortcuts;
 import com.berray.components.core.AnchorType;
-import com.berray.event.Event;
 import com.berray.math.Color;
 import com.berray.math.Rect;
 import com.berray.math.Vec2;
-import com.raylib.Jaylib;
+import com.berray.math.Vec3;
 import com.raylib.Raylib;
 import org.bytedeco.javacpp.FloatPointer;
+import uk.co.petertribble.sphaero2.JigUtil;
 import uk.co.petertribble.sphaero2.model.Jigsaw;
 import uk.co.petertribble.sphaero2.model.JigsawParam;
 import uk.co.petertribble.sphaero2.model.Piece;
-import uk.co.petertribble.sphaero2.model.PiecesBin;
 
 import javax.imageio.ImageIO;
 import java.awt.Image;
@@ -30,35 +29,41 @@ import java.util.HashMap;
 import java.util.List;
 
 import static com.berray.objects.core.Label.label;
+import static com.berray.objects.gui.panel.PanelBuilder.makePanel;
+import static com.berray.objects.gui.panel.RowBuilder.makeRow;
 import static com.raylib.Raylib.*;
 
 
 public class JigsawApplication extends BerrayApplication implements CoreAssetShortcuts, CoreComponentShortcuts {
 
-  private int pieceWidth;
-  private int pieceHeight;
   private HashMap<Integer, PieceDescription> pieceDescriptions;
-  private float scale = 1.0f;
 
   @Override
   public void game() {
     String imagePath = "/home/mato/project/games/sphaero2/jigsaw/portrait_of_aloy_by_gordon87_dgtr6jh.png";
     //String imagePath = "/home/mato/project/games/sphaero2/jigsaw/sample.jpg";
+    //String imagePath = "/home/mato/project/games/sphaero2/samurai_girl_katana-wallpaper-1920x1080.jpg";
+
     BufferedImage sourceImage = getImage(imagePath);
     JigsawParam params = new JigsawParam();
     params.setFilename(new File(imagePath));
     params.setPieces(20);
     Jigsaw jigsaw = new Jigsaw(params, sourceImage);
     System.out.println("cutting...");
-    jigsaw.reset(true, (int) (width() / scale), (int) (height() / scale));
+    jigsaw.reset(true, width(), height());
 
     System.out.println("creating pieces textures...");
     List<BufferedImage> textures = createTextures(jigsaw.getPieces().getPieces());
+
+    BufferedImage previewImage = JigUtil.resizeImage(sourceImage, 150, sourceImage.getHeight());
+    System.out.println("preview image "+previewImage.getWidth()+" x "+previewImage.getHeight());
 
     System.out.println("uploading pieces textures...");
     for (int index = 0; index < textures.size(); index++) {
       loadSprite("pieces_" + index, textures.get(index));
     }
+
+    loadSprite("preview", previewImage);
 
     Raylib.Shader shdrOutline = LoadShader(null, "/home/mato/project/games/sphaero2/src/main/resources/outline.fs");
     float outlineSize[] = {1.0f};
@@ -78,8 +83,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
 
     var root = add(
         pos(0, 0),
-        anchor(AnchorType.TOP_LEFT),
-        scale(scale)
+        anchor(AnchorType.TOP_LEFT)
     );
 
     ShaderNode shaderNode = root.add(
@@ -91,6 +95,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     GameObject piecesNode = shaderNode.add(
         new PiecesComponent(jigsaw.getPieces(), pieceDescriptions),
         pos(0, 0),
+        scale(1.0f),
         area(),
         anchor(AnchorType.TOP_LEFT),
         mouse()
@@ -98,20 +103,41 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
 
 
     onKeyPress(KEY_SPACE, event -> {
-      jigsaw.shuffle((int) (width()/scale), (int) (height()/scale));
+      Vec3 scale = piecesNode.get("scale");
+      jigsaw.shuffle((int) (width() / scale.getX()), (int) (height() / scale.getX()));
     });
 
 
     root.add(
         label(() ->
             "# Pieces: " + jigsaw.getPieces().getPieces().size() + "\n" +
-            "# Textures: " + textures.size()+"\n"+
-            "# mouse pos: "+piecesNode.get("mousePos", null)
+                "# Textures: " + textures.size() + "\n" +
+                "# mouse pos: " + piecesNode.get("mousePos", null)+"\n"+
+                "# scale: " + piecesNode.get("scaleFactor", null)
         ),
         pos(0, 0),
         anchor(AnchorType.TOP_LEFT),
         color(Color.GOLD)
     );
+
+    GameObject preview = add(
+        makePanel()
+            .title("Preview")
+            .movable(true)
+            .columnWidths(150.0f)
+            .color(Color.BLACK, Color.GOLD)
+            .frame(5, Color.WHITE)
+            .row(makeRow(previewImage.getHeight())
+                .align(AnchorType.TOP_LEFT)
+                .add(
+                    sprite("preview"),
+                    pos(0,0)
+                )
+            )
+            .buildGameObject()
+    );
+    preview.set("pos", new Vec2(100, 100));
+    preview.set("anchor", AnchorType.TOP_LEFT);
 
 
 //    root.add(

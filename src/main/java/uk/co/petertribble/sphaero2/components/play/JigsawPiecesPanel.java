@@ -165,11 +165,13 @@ public class JigsawPiecesPanel extends JPanel {
     // draw lines from last piece to all its neighbors
     if (piecesBin.getPieces().size() > 0) {
       Piece lastPiece = piecesBin.getPieces().get(piecesBin.getPieces().size() - 1);
+      /*
       for (Piece neighbour : lastPiece.getNeighbors()) {
         g.setColor(Color.GREEN);
         g.drawLine(lastPiece.getPuzzleX()+lastPiece.getCurrentWidth()/2, lastPiece.getPuzzleY()+lastPiece.getCurrentHeight()/2,
             neighbour.getPuzzleX()+neighbour.getCurrentWidth()/2, neighbour.getPuzzleY()+neighbour.getCurrentHeight()/2);
       }
+       */
     }
 
     if (lastClick != null) {

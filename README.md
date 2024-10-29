@@ -18,6 +18,40 @@ page says GPL, so I'm assuming that's what the license is. (Except for
 ImagePreview.java, which is copyrighted by Oracle.)
 
 
+Berray TODO:
+* [x] panel should extend in negative directions so the mouse events work
+* [x] zoom with scroll wheel
+  * [x] show zoom as label
+  * [ ] set initial zoom so the entire image can be visible
+* [ ] fix bug: join pieces and press rotate. The last piece is rotated instead of the combined piece 
+* [ ] select pieces (shift)
+  * [ ] collect selected piece to one big pile
+  * [ ] disperse selected pieces so there is no overlap
+* [ ] finish scene
+* [x] small window with preview of the final image
+  * [ ] resizeable
+  * [x] movable
+  * [ ] minimizable
+* [ ] small window with preview of the table
+  * [ ] resizeable, movable, minimizable
+  * [ ] table is movable by clicking in the small window
+* [ ] configuration scene
+  * [ ] image panel (image preview, piece preview)
+  * [ ] text field (file name)
+  * [ ] dropdown field (cutter)
+  * [ ] slider (piece count)
+  * [ ] select image dialog
+* [ ] load/save
+* [ ] maybe rotate animation?
+* [ ] addiitional cutters
+  * euler tiles
+  * triangles which can be rotated 120 degrees?
+    * https://www.anitasfeast.com/blog/2013/09/the-hagues-escher-in-het-palais/
+    * https://www.researchgate.net/figure/Artistic-tiling-Escher-55_fig5_328137631
+    * http://artwithmrsseitz.blogspot.com/2015/04/mc-escher-tessellations.html
+
+
+
 TODO:
 * move panel with click and drag
 * select multiple pieces and move them
