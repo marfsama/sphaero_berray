@@ -1,5 +1,6 @@
 package uk.co.petertribble.sphaero2.model;
 
+import com.berray.math.Rect;
 import com.berray.math.Vec2;
 
 import java.util.*;
@@ -141,6 +142,22 @@ public class PiecesBin {
 
   public int getHeight() {
     return pieces.stream().mapToInt(p -> p.getPuzzleY() + p.getCurrentHeight()).max().orElse(100);
+  }
+
+  public Rect getRect() {
+    int minX = Integer.MAX_VALUE;
+    int minY = Integer.MAX_VALUE;
+    int maxX = Integer.MIN_VALUE;
+    int maxY = Integer.MIN_VALUE;
+
+    for (Piece piece : pieces) {
+      minX = Math.min(minX, piece.getPuzzleX());
+      minY = Math.min(minY, piece.getPuzzleY());
+      maxX = Math.max(maxX, piece.getPuzzleX()+piece.getCurrentWidth());
+      maxY = Math.max(maxY, piece.getPuzzleY()+piece.getCurrentHeight());
+    }
+
+    return new Rect(minX, minY, maxX-minX, maxY-minY);
   }
 
   public Piece getPieceAt(int x, int y) {

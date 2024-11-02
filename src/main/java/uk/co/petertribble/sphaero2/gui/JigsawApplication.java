@@ -5,6 +5,7 @@ import com.berray.GameObject;
 import com.berray.assets.CoreAssetShortcuts;
 import com.berray.components.CoreComponentShortcuts;
 import com.berray.components.core.AnchorType;
+import com.berray.event.CoreEvents;
 import com.berray.math.Color;
 import com.berray.math.Rect;
 import com.berray.math.Vec2;
@@ -105,13 +106,9 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
       initialScale = 1.0f;
     }
     piecesNode.set("scaleFactor", (int) (initialScale * 10));
-
-
-    onKeyPress(KEY_SPACE, event -> {
-      Vec3 scale = piecesNode.get("scale");
-      jigsaw.shuffle((int) (width() / scale.getX()), (int) (height() / scale.getX()));
-    });
-
+    piecesNode.add(
+        new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions)
+    );
 
     root.add(
         label(() ->
@@ -119,7 +116,8 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
                 "# Textures: " + textures.size() + "\n" +
                 "# mouse pos: " + piecesNode.get("mousePos", null) + "\n" +
                 "# scale: " + piecesNode.get("scaleFactor", null) + "\n"+
-                "# pos: " + piecesNode.get("pos", null) + "\n"
+                "# pos: " + piecesNode.get("pos", null) + "\n"+
+                "# rect: " + jigsaw.getPieces().getRect() + "\n"
         ),
         pos(0, 0),
         anchor(AnchorType.TOP_LEFT),
@@ -147,19 +145,51 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     preview.set("pos", new Vec2(100, 100));
     preview.set("anchor", AnchorType.TOP_LEFT);
 
+    GameObject overview = make(
+        new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions),
+        scale(1.0f, 1.0f, 1.0f)
+    );
 
-//    root.add(
-//            new ShaderNode(shdrOutline)
-//        )
-//        .add(
-//            sprite("piece"),
-//            pos(-80, 0)
-//        );
+    overview.add(
+        rect(width(), height()).fill(false).lineThickness(10),
+        pos(0,0),
+        color(Color.WHITE),
+        anchor(AnchorType.TOP_LEFT),
+        "marker"
+    );
 
-//    root.add(
-//        sprite("piece2"),
-//        pos(80, 0)
-//    );
+    GameObject overviewPanel = add(
+        makePanel()
+            .title("Overview")
+            .fontSize(20)
+            .movable(true)
+            .minimizable(true)
+            .columnWidths(150.0f)
+            .color(Color.BLACK, Color.GOLD)
+            .frame(5, Color.WHITE)
+            .row(makeRow(150.0f)
+                .align(AnchorType.TOP_LEFT)
+                .add(overview)
+            )
+            .buildGameObject()
+    );
+    overviewPanel.set("pos", new Vec2(500, 100));
+    overviewPanel.set("anchor", AnchorType.TOP_LEFT);
+    overviewPanel.on(CoreEvents.UPDATE, e -> {
+      var rect = jigsaw.getPieces().getRect();
+      float scaleX = 150.0f / rect.getWidth();
+      float scaleY = 150.0f / rect.getHeight();
+      float scale = Math.min(scaleX, scaleY);
+      overview.set("scale", new Vec3(scale, scale, scale));
+      overview.set("pos", new Vec2(-rect.getX() * scale, -rect.getY() * scaleX));
+
+      GameObject marker = overview.getChildren("marker").get(0);
+      Vec3 piecesScale = piecesNode.get("scale");
+      Vec2 piecesPos = piecesNode.get("pos");
+      marker.set("lineThickness", 1.0f / scale);
+      marker.set("pos", new Vec2(-piecesPos.getX() / piecesScale.getX(), -piecesPos.getY() / piecesScale.getY()));
+      marker.set("size", new Vec2(width() / piecesScale.getX(), height() / piecesScale.getY()));
+    });
   }
 
   private List<BufferedImage> createTextures(List<Piece> originalPieces) {

@@ -6,13 +6,10 @@ import com.berray.event.CoreEvents;
 import com.berray.event.KeyEvent;
 import com.berray.event.MouseEvent;
 import com.berray.event.MouseWheelEvent;
-import com.berray.math.Color;
 import com.berray.math.Rect;
 import com.berray.math.Vec2;
 import com.berray.math.Vec3;
-import com.raylib.Jaylib;
 import com.raylib.Raylib;
-import uk.co.petertribble.sphaero2.model.MultiPiece;
 import uk.co.petertribble.sphaero2.model.Piece;
 import uk.co.petertribble.sphaero2.model.PiecesBin;
 
@@ -56,7 +53,6 @@ public class PiecesComponent extends Component {
   @Override
   public void add(GameObject gameObject) {
     super.add(gameObject);
-    registerGetter("render", () -> true);
     registerGetter("size", this::getSize);
 
     on(MOUSE_CLICK, this::onMouseClick);
@@ -95,7 +91,6 @@ public class PiecesComponent extends Component {
     float scale = scaleFactor / 10.0f;
 
     gameObject.set("scale", new Vec2(scale, scale));
-
   }
 
   private void onMouseWheelMove(MouseWheelEvent event) {
@@ -134,6 +129,11 @@ public class PiecesComponent extends Component {
           clickedPiece.setRotation((clickedPiece.getRotation() + 270) % 360);
         }
         break;
+      case KEY_SPACE:
+        Vec3 scale = gameObject.get("scale");
+        var game = gameObject.getGame();
+        pieces.shuffle((int) (game.width() / scale.getX()), (int) (game.height() / scale.getY()));
+        gameObject.set("pos", Vec2.origin());
     }
 
   }
@@ -239,60 +239,4 @@ public class PiecesComponent extends Component {
     return new Vec2(pieces.getWidth(), pieces.getHeight());
   }
 
-  @Override
-  public void draw() {
-    for (Piece piece : pieces.getPieces()) {
-      if (piece instanceof MultiPiece) {
-        MultiPiece multiPiece = (MultiPiece) piece;
-        for (Piece subPiece : multiPiece.getSubs()) {
-          int rotX = piece.getRotatedX();
-          int rotY = piece.getRotatedY();
-          int pieceX = subPiece.getRotatedX();
-          int pieceY = subPiece.getRotatedY();
-
-          int deltaX = pieceX - rotX;
-          int deltaY = pieceY - rotY;
-
-          drawPiece(subPiece, piece.getPuzzleX() + deltaX, piece.getPuzzleY() + deltaY, pieces.isSelected(piece), false);
-        }
-        //DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
-      } else {
-        drawPiece(piece, piece.getPuzzleX(), piece.getPuzzleY(), pieces.isSelected(piece), false);
-      }
-    }
-    // draw bounding box
-    //Rect boundingBox = gameObject.getBoundingBox();
-    //DrawRectangleLines((int) boundingBox.getX(), (int) boundingBox.getY(), (int) boundingBox.getWidth(), (int) boundingBox.getHeight(), Jaylib.BLACK);
-  }
-
-  private void drawPiece(Piece piece, int x, int y, boolean selected, boolean highlight) {
-    PieceDescription pieceDescription = pieceDescriptions.get(piece.getId());
-    if (pieceDescription != null) {
-      Texture texture = getAssetManager().getAsset("pieces_" + pieceDescription.getTexture()).getAsset();
-      Color color = Color.WHITE;
-      if (selected) {
-        color = Color.GOLD;
-      }
-
-      Rect texturePosition = pieceDescription.getTexturePosition();
-      Vec2 center = new Vec2(piece.getImageWidth() / 2.0f, piece.getImageHeight() / 2.0f);
-      Vec2 centerRotated = new Vec2(piece.getCurrentWidth() / 2.0f, piece.getCurrentHeight() / 2.0f);
-
-      DrawTexturePro(texture,
-          texturePosition.toRectangle(),
-          new Rect(x + centerRotated.getX(), y + centerRotated.getY(), piece.getImageWidth(), piece.getImageHeight()).toRectangle(),
-          center.toVector2(),
-          piece.getRotation(),
-          color.toRaylibColor());
-
-      if (highlight) {
-        DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
-        DrawLine(piece.getPuzzleX(), piece.getPuzzleY(), piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY() + piece.getCurrentHeight(), Jaylib.GOLD);
-        DrawLine(piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY(), piece.getPuzzleX(), piece.getPuzzleY() + piece.getCurrentHeight(), Jaylib.GOLD);
-
-        DrawCircle((int) (piece.getPuzzleX() + centerRotated.getX()), (int) (piece.getPuzzleY() + centerRotated.getY()), 5.0f, Jaylib.GOLD);
-      }
-    }
-
-  }
 }

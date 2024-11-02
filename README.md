@@ -32,13 +32,13 @@ Berray TODO:
   * [ ] disperse selected pieces so there is no overlap
 * [ ] finish scene
 * [x] small window with preview of the final image
-  * [ ] resizeable
   * [x] movable
   * [x] minimizable
-* [ ] small window with preview of the pieces workspace
-  * [ ] resizeable, movable, minimizable
+* [x] small window with preview of the pieces workspace
+  * [x] movable, minimizable
   * [ ] current view is shown by a rectangle
   * [ ] workspace is movable by clicking in the small window
+* [ ] change background
 * [ ] configuration scene
   * [ ] image panel (image preview, piece preview)
   * [ ] text field (file name)
@@ -48,9 +48,11 @@ Berray TODO:
 * [ ] load/save
 * [ ] Bugfix: set shader values: which edge should be drawn highlighted or darkened
   * [ ] option to "don't draw piece highlight on combined edges"
-* [ ] show (outline) hidden pieces
-* [ ] addiitional cutters
+* [ ] show (outline of) hidden pieces
+* [ ] additional cutters
   * euler tiles
+    * hexagons
+    * rows shifted each 2nd row
   * triangles which can be rotated 120 degrees?
     * https://www.anitasfeast.com/blog/2013/09/the-hagues-escher-in-het-palais/
     * https://www.researchgate.net/figure/Artistic-tiling-Escher-55_fig5_328137631
