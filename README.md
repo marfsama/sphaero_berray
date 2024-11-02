@@ -22,19 +22,23 @@ Berray TODO:
 * [x] panel should extend in negative directions so the mouse events work
 * [x] zoom with scroll wheel
   * [x] show zoom as label
-  * [ ] set initial zoom so the entire image can be visible
-* [ ] fix bug: join pieces and press rotate. The last piece is rotated instead of the combined piece 
-* [ ] select pieces (shift)
+  * [x] set initial zoom so the entire image can be visible
+  * [x] zoom to mouse cursor
+* [x] fix bug: join pieces and press rotate. The last piece is rotated instead of the combined piece 
+* [ ] select pieces
+  * [ ] shilft draws selection rectangle
+  * [ ] crtl selects single piece
   * [ ] collect selected piece to one big pile
   * [ ] disperse selected pieces so there is no overlap
 * [ ] finish scene
 * [x] small window with preview of the final image
   * [ ] resizeable
   * [x] movable
-  * [ ] minimizable
-* [ ] small window with preview of the table
+  * [x] minimizable
+* [ ] small window with preview of the pieces workspace
   * [ ] resizeable, movable, minimizable
-  * [ ] table is movable by clicking in the small window
+  * [ ] current view is shown by a rectangle
+  * [ ] workspace is movable by clicking in the small window
 * [ ] configuration scene
   * [ ] image panel (image preview, piece preview)
   * [ ] text field (file name)
@@ -42,7 +46,9 @@ Berray TODO:
   * [ ] slider (piece count)
   * [ ] select image dialog
 * [ ] load/save
-* [ ] maybe rotate animation?
+* [ ] Bugfix: set shader values: which edge should be drawn highlighted or darkened
+  * [ ] option to "don't draw piece highlight on combined edges"
+* [ ] show (outline) hidden pieces
 * [ ] addiitional cutters
   * euler tiles
   * triangles which can be rotated 120 degrees?

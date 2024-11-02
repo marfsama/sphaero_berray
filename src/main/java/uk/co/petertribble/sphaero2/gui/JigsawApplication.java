@@ -56,7 +56,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     List<BufferedImage> textures = createTextures(jigsaw.getPieces().getPieces());
 
     BufferedImage previewImage = JigUtil.resizeImage(sourceImage, 150, sourceImage.getHeight());
-    System.out.println("preview image "+previewImage.getWidth()+" x "+previewImage.getHeight());
+    System.out.println("preview image " + previewImage.getWidth() + " x " + previewImage.getHeight());
 
     System.out.println("uploading pieces textures...");
     for (int index = 0; index < textures.size(); index++) {
@@ -100,6 +100,11 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
         anchor(AnchorType.TOP_LEFT),
         mouse()
     );
+    float initialScale = Math.min((float) width() / sourceImage.getWidth(), (float) height() / sourceImage.getHeight());
+    if (initialScale > 1.0f) {
+      initialScale = 1.0f;
+    }
+    piecesNode.set("scaleFactor", (int) (initialScale * 10));
 
 
     onKeyPress(KEY_SPACE, event -> {
@@ -112,8 +117,9 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
         label(() ->
             "# Pieces: " + jigsaw.getPieces().getPieces().size() + "\n" +
                 "# Textures: " + textures.size() + "\n" +
-                "# mouse pos: " + piecesNode.get("mousePos", null)+"\n"+
-                "# scale: " + piecesNode.get("scaleFactor", null)
+                "# mouse pos: " + piecesNode.get("mousePos", null) + "\n" +
+                "# scale: " + piecesNode.get("scaleFactor", null) + "\n"+
+                "# pos: " + piecesNode.get("pos", null) + "\n"
         ),
         pos(0, 0),
         anchor(AnchorType.TOP_LEFT),
@@ -123,7 +129,9 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     GameObject preview = add(
         makePanel()
             .title("Preview")
+            .fontSize(20)
             .movable(true)
+            .minimizable(true)
             .columnWidths(150.0f)
             .color(Color.BLACK, Color.GOLD)
             .frame(5, Color.WHITE)
@@ -131,7 +139,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
                 .align(AnchorType.TOP_LEFT)
                 .add(
                     sprite("preview"),
-                    pos(0,0)
+                    pos(0, 0)
                 )
             )
             .buildGameObject()
@@ -237,7 +245,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     width(2000);
     height(1200);
     background(Color.GRAY);
-    title("Add Level Test");
+    title("Sphaero Test");
   }
 
   public static void main(String[] args) {

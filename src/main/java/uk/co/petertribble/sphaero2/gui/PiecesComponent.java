@@ -2,10 +2,14 @@ package uk.co.petertribble.sphaero2.gui;
 
 import com.berray.GameObject;
 import com.berray.components.core.Component;
-import com.berray.event.*;
+import com.berray.event.CoreEvents;
+import com.berray.event.KeyEvent;
+import com.berray.event.MouseEvent;
+import com.berray.event.MouseWheelEvent;
 import com.berray.math.Color;
 import com.berray.math.Rect;
 import com.berray.math.Vec2;
+import com.berray.math.Vec3;
 import com.raylib.Jaylib;
 import com.raylib.Raylib;
 import uk.co.petertribble.sphaero2.model.MultiPiece;
@@ -38,7 +42,9 @@ public class PiecesComponent extends Component {
   private Piece clickedPiece;
   private Vec2 mousePos;
 
-  /** scale ranges from 1 - 5, where 10 is original scale. Smaller values is zoom out. */
+  /**
+   * scale ranges from 1 - 5, where 10 is original scale. Smaller values is zoom out.
+   */
   private int scaleFactor = 10;
 
   public PiecesComponent(PiecesBin pieces, Map<Integer, PieceDescription> pieceDescriptions) {
@@ -64,7 +70,7 @@ public class PiecesComponent extends Component {
     onGame(CoreEvents.KEY_UP, this::onKeyUp);
 
     // override bounding box so we get all mouse events.
-    registerGetter("boundingBox", () -> new Rect(0,0, gameObject.getGame().width(), gameObject.getGame().height()));
+    registerGetter("boundingBox", () -> new Rect(0, 0, gameObject.getGame().width(), gameObject.getGame().height()));
 
     registerBoundProperty("scaleFactor", this::getScaleFactor, this::setScaleFactor);
 
@@ -78,22 +84,30 @@ public class PiecesComponent extends Component {
   }
 
   public void setScaleFactor(int scaleFactor) {
-    this.scaleFactor = scaleFactor;
-  }
-
-  private void onMouseWheelMove(MouseWheelEvent event) {
-    System.out.println("mouse wheel delta: "+event.getWheelDelta());
-    scaleFactor += event.getWheelDelta();
     if (scaleFactor < 1) {
       scaleFactor = 1;
     }
     if (scaleFactor > 15) {
       scaleFactor = 15;
     }
+    this.scaleFactor = scaleFactor;
 
     float scale = scaleFactor / 10.0f;
 
     gameObject.set("scale", new Vec2(scale, scale));
+
+  }
+
+  private void onMouseWheelMove(MouseWheelEvent event) {
+    Vec2 oldPos = event.getGameObjectPos();
+    setScaleFactor((int) (scaleFactor + event.getWheelDelta()));
+
+    // calculate position the mouse cursor should have when it is in the same game object position
+    Vec3 newWorldPos = gameObject.getWorldTransform().multiply(oldPos.getX(), oldPos.getY(), 0);
+
+    // move pieces table so the expected new window pos is the current pos
+    Vec2 delta = event.getWindowPos().sub(newWorldPos.toVec2());
+    gameObject.doAction("moveBy", delta);
   }
 
   private void onKeyUp(KeyEvent event) {
@@ -227,36 +241,28 @@ public class PiecesComponent extends Component {
 
   @Override
   public void draw() {
-    rlPushMatrix();
-    {
-      rlMultMatrixf(gameObject.getWorldTransform().toFloatTransposed());
+    for (Piece piece : pieces.getPieces()) {
+      if (piece instanceof MultiPiece) {
+        MultiPiece multiPiece = (MultiPiece) piece;
+        for (Piece subPiece : multiPiece.getSubs()) {
+          int rotX = piece.getRotatedX();
+          int rotY = piece.getRotatedY();
+          int pieceX = subPiece.getRotatedX();
+          int pieceY = subPiece.getRotatedY();
 
+          int deltaX = pieceX - rotX;
+          int deltaY = pieceY - rotY;
 
-      for (Piece piece : pieces.getPieces()) {
-        if (piece instanceof MultiPiece) {
-          MultiPiece multiPiece = (MultiPiece) piece;
-          for (Piece subPiece : multiPiece.getSubs()) {
-            int rotX = piece.getRotatedX();
-            int rotY = piece.getRotatedY();
-            int pieceX = subPiece.getRotatedX();
-            int pieceY = subPiece.getRotatedY();
-
-            int deltaX = pieceX - rotX;
-            int deltaY = pieceY - rotY;
-
-            drawPiece(subPiece, piece.getPuzzleX() + deltaX, piece.getPuzzleY() + deltaY, pieces.isSelected(piece), false);
-          }
-          //DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
-        } else {
-          drawPiece(piece, piece.getPuzzleX(), piece.getPuzzleY(), pieces.isSelected(piece), false);
+          drawPiece(subPiece, piece.getPuzzleX() + deltaX, piece.getPuzzleY() + deltaY, pieces.isSelected(piece), false);
         }
+        //DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
+      } else {
+        drawPiece(piece, piece.getPuzzleX(), piece.getPuzzleY(), pieces.isSelected(piece), false);
       }
-      // draw bounding box
-      //Rect boundingBox = gameObject.getBoundingBox();
-      //DrawRectangleLines((int) boundingBox.getX(), (int) boundingBox.getY(), (int) boundingBox.getWidth(), (int) boundingBox.getHeight(), Jaylib.BLACK);
-
     }
-    rlPopMatrix();
+    // draw bounding box
+    //Rect boundingBox = gameObject.getBoundingBox();
+    //DrawRectangleLines((int) boundingBox.getX(), (int) boundingBox.getY(), (int) boundingBox.getWidth(), (int) boundingBox.getHeight(), Jaylib.BLACK);
   }
 
   private void drawPiece(Piece piece, int x, int y, boolean selected, boolean highlight) {
