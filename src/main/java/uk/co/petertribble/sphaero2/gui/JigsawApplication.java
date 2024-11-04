@@ -64,7 +64,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
 
     loadSprite("preview", previewImage);
 
-    Raylib.Shader shaderOutline = LoadShader(null, "/home/mato/project/games/sphaero2/src/main/resources/outline2.fs");
+    Raylib.Shader shaderOutline = LoadShader(null, "./src/main/resources/outline2.fs");
     float outlineSize[] = {1.0f};
     float outlineColor[] = {1.0f, 0.8f, 0.0f, 1.0f};     // Normalized RED color
     float textureSize[] = {1024, 1024};
