@@ -1,5 +1,7 @@
 package uk.co.petertribble.sphaero2.model;
 
+import com.berray.math.Rect;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -88,7 +90,7 @@ public class Jigsaw {
   }
 
   public void shuffle(int width, int height) {
-    pieces.shuffle(width, height);
+    pieces.shuffle(new Rect(0, 0, width, height));
 
     finished = false;
     if (finishedImage != null) {

@@ -34,6 +34,7 @@ public class PiecesDrawComponent extends Component {
   @Override
   public void draw() {
     for (Piece piece : pieces.getPieces()) {
+      boolean  selected = pieces.isSelected(piece);
       if (piece instanceof MultiPiece) {
         MultiPiece multiPiece = (MultiPiece) piece;
         for (Piece subPiece : multiPiece.getSubs()) {
@@ -45,26 +46,22 @@ public class PiecesDrawComponent extends Component {
           int deltaX = pieceX - rotX;
           int deltaY = pieceY - rotY;
 
-          drawPiece(subPiece, piece.getPuzzleX() + deltaX, piece.getPuzzleY() + deltaY, pieces.isSelected(piece), false);
+          drawPiece(subPiece, piece.getPuzzleX() + deltaX, piece.getPuzzleY() + deltaY, false);
         }
-        //DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
+        if (selected) {
+          DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
+        }
       } else {
-        drawPiece(piece, piece.getPuzzleX(), piece.getPuzzleY(), pieces.isSelected(piece), false);
+        drawPiece(piece, piece.getPuzzleX(), piece.getPuzzleY(), selected);
       }
     }
-    // draw bounding box
-    //Rect boundingBox = gameObject.getBoundingBox();
-    //DrawRectangleLines((int) boundingBox.getX(), (int) boundingBox.getY(), (int) boundingBox.getWidth(), (int) boundingBox.getHeight(), Jaylib.BLACK);
   }
 
-  private void drawPiece(Piece piece, int x, int y, boolean selected, boolean highlight) {
+  private void drawPiece(Piece piece, int x, int y, boolean selected) {
     PieceDescription pieceDescription = pieceDescriptions.get(piece.getId());
     if (pieceDescription != null) {
       Raylib.Texture texture = getAssetManager().getAsset("pieces_" + pieceDescription.getTexture()).getAsset();
       Color color = Color.WHITE;
-      if (selected) {
-        color = Color.GOLD;
-      }
 
       Rect texturePosition = pieceDescription.getTexturePosition();
       Vec2 center = new Vec2(piece.getImageWidth() / 2.0f, piece.getImageHeight() / 2.0f);
@@ -77,12 +74,8 @@ public class PiecesDrawComponent extends Component {
           piece.getRotation(),
           color.toRaylibColor());
 
-      if (highlight) {
+      if (selected) {
         DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
-        DrawLine(piece.getPuzzleX(), piece.getPuzzleY(), piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY() + piece.getCurrentHeight(), Jaylib.GOLD);
-        DrawLine(piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY(), piece.getPuzzleX(), piece.getPuzzleY() + piece.getCurrentHeight(), Jaylib.GOLD);
-
-        DrawCircle((int) (piece.getPuzzleX() + centerRotated.getX()), (int) (piece.getPuzzleY() + centerRotated.getY()), 5.0f, Jaylib.GOLD);
       }
     }
 

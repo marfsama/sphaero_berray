@@ -1,5 +1,6 @@
 package uk.co.petertribble.sphaero2.components.play;
 
+import com.berray.math.Rect;
 import uk.co.petertribble.sphaero2.model.Piece;
 import uk.co.petertribble.sphaero2.model.PiecesBin;
 
@@ -133,7 +134,7 @@ public class JigsawPiecesPanel extends JPanel {
    * randomize rotation.
    */
   public void shuffle() {
-    piecesBin.shuffle(getWidth(), getHeight());
+    piecesBin.shuffle(new Rect(0,0, getWidth(), getHeight()));
     repaint();
   }
 

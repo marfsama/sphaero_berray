@@ -61,7 +61,7 @@ public class PiecesBin {
     for (Piece piece : selected) {
       int x = (int) (piece.getPuzzleX() + delta.getX());
       int y = (int) (piece.getPuzzleY() + delta.getY());
-      piece.moveTo(x,y);
+      piece.moveTo(x, y);
     }
   }
 
@@ -98,17 +98,42 @@ public class PiecesBin {
     idProvider.set(maxId);
   }
 
-  public void shuffle(int width, int height) {
-    List<Piece> pieces = this.pieces;
-    this.pieces = new ArrayList<>();
+  public void clear(Rect destination, Rect rectangleToKeepFree) {
+    List<Piece> piecesToShuffle = new ArrayList<>();
+    List<Piece> remainingPieces = new ArrayList<>();
     Random random = new Random();
-    for (Piece piece : pieces) {
-      piece.setPuzzlePosition(
-          random.nextInt(width - piece.getCurrentWidth()),
-          random.nextInt(height - piece.getCurrentHeight()));
-      this.pieces.add(piece);
+    for (Piece piece : this.pieces) {
+      if (destination.contains(piece.getPuzzleX(), piece.getPuzzleY())) {
+        piece.setPuzzlePosition(
+            (int) (destination.getX() + random.nextInt((int) (destination.getWidth() - piece.getCurrentWidth()))),
+            (int) (destination.getY() + random.nextInt((int) (destination.getHeight() - piece.getCurrentHeight()))));
+        piecesToShuffle.add(piece);
+      } else {
+        remainingPieces.add(piece);
+      }
     }
-    Collections.shuffle(this.pieces);
+    Collections.shuffle(piecesToShuffle);
+    remainingPieces.addAll(piecesToShuffle);
+    this.pieces = remainingPieces;
+  }
+
+  public void shuffle(Rect destination) {
+    List<Piece> piecesToShuffle = new ArrayList<>();
+    List<Piece> remainingPieces = new ArrayList<>();
+    Random random = new Random();
+    for (Piece piece : this.pieces) {
+      if (destination.contains(piece.getPuzzleX(), piece.getPuzzleY())) {
+        int x = (int) (destination.getX() + random.nextFloat() * (destination.getWidth() - piece.getCurrentWidth()));
+        int y = (int) (destination.getY() + random.nextFloat() * (destination.getHeight() - piece.getCurrentHeight()));
+        piece.setPuzzlePosition(x, y);
+        piecesToShuffle.add(piece);
+      } else {
+        remainingPieces.add(piece);
+      }
+    }
+    Collections.shuffle(piecesToShuffle);
+    remainingPieces.addAll(piecesToShuffle);
+    this.pieces = remainingPieces;
   }
 
   /**
@@ -153,11 +178,11 @@ public class PiecesBin {
     for (Piece piece : pieces) {
       minX = Math.min(minX, piece.getPuzzleX());
       minY = Math.min(minY, piece.getPuzzleY());
-      maxX = Math.max(maxX, piece.getPuzzleX()+piece.getCurrentWidth());
-      maxY = Math.max(maxY, piece.getPuzzleY()+piece.getCurrentHeight());
+      maxX = Math.max(maxX, piece.getPuzzleX() + piece.getCurrentWidth());
+      maxY = Math.max(maxY, piece.getPuzzleY() + piece.getCurrentHeight());
     }
 
-    return new Rect(minX, minY, maxX-minX, maxY-minY);
+    return new Rect(minX, minY, maxX - minX, maxY - minY);
   }
 
   public Piece getPieceAt(int x, int y) {

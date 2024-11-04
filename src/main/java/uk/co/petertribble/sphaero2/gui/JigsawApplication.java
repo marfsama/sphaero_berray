@@ -41,9 +41,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
 
   @Override
   public void game() {
-    String imagePath = "/home/mato/project/games/sphaero2/jigsaw/portrait_of_aloy_by_gordon87_dgtr6jh.png";
-    //String imagePath = "/home/mato/project/games/sphaero2/jigsaw/sample.jpg";
-    //String imagePath = "/home/mato/project/games/sphaero2/samurai_girl_katana-wallpaper-1920x1080.jpg";
+    String imagePath = "<full-path-to-image-jpg-or-png>";
 
     BufferedImage sourceImage = getImage(imagePath);
     JigsawParam params = new JigsawParam();
@@ -66,20 +64,20 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
 
     loadSprite("preview", previewImage);
 
-    Raylib.Shader shdrOutline = LoadShader(null, "/home/mato/project/games/sphaero2/src/main/resources/outline.fs");
+    Raylib.Shader shaderOutline = LoadShader(null, "/home/mato/project/games/sphaero2/src/main/resources/outline2.fs");
     float outlineSize[] = {1.0f};
-    float outlineColor[] = {1.0f, 0.0f, 0.0f, 1.0f};     // Normalized RED color
+    float outlineColor[] = {1.0f, 0.8f, 0.0f, 1.0f};     // Normalized RED color
     float textureSize[] = {1024, 1024};
 
     // Get shader locations
-    int outlineSizeLoc = GetShaderLocation(shdrOutline, "outlineSize");
-    int outlineColorLoc = GetShaderLocation(shdrOutline, "outlineColor");
-    int textureSizeLoc = GetShaderLocation(shdrOutline, "textureSize");
+    int outlineSizeLoc = GetShaderLocation(shaderOutline, "outlineSize");
+    int outlineColorLoc = GetShaderLocation(shaderOutline, "outlineColor");
+    int textureSizeLoc = GetShaderLocation(shaderOutline, "textureSize");
 
     // Set shader values (they can be changed later)
-    SetShaderValue(shdrOutline, outlineSizeLoc, new FloatPointer(FloatBuffer.wrap(outlineSize)), SHADER_UNIFORM_FLOAT);
-    SetShaderValue(shdrOutline, outlineColorLoc, new FloatPointer(FloatBuffer.wrap(outlineColor)), SHADER_UNIFORM_VEC4);
-    SetShaderValue(shdrOutline, textureSizeLoc, new FloatPointer(FloatBuffer.wrap(textureSize)), SHADER_UNIFORM_VEC2);
+    SetShaderValue(shaderOutline, outlineSizeLoc, new FloatPointer(FloatBuffer.wrap(outlineSize)), SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shaderOutline, outlineColorLoc, new FloatPointer(FloatBuffer.wrap(outlineColor)), SHADER_UNIFORM_VEC4);
+    SetShaderValue(shaderOutline, textureSizeLoc, new FloatPointer(FloatBuffer.wrap(textureSize)), SHADER_UNIFORM_VEC2);
 
 
     var root = add(
@@ -88,7 +86,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     );
 
     ShaderNode shaderNode = root.add(
-        new ShaderNode(shdrOutline),
+        new ShaderNode(shaderOutline),
         pos(0, 0),
         anchor(AnchorType.TOP_LEFT)
     );
@@ -109,6 +107,15 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     piecesNode.add(
         new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions)
     );
+    GameObject selectionRectangle = piecesNode.add(
+        rect(0f ,0),
+        pos(0,0),
+        anchor(AnchorType.TOP_LEFT),
+        color(new Color(173, 216, 230, 128)), // light blue
+        "selectionRectangle"
+    );
+    selectionRectangle.setPaused(true);
+
 
     root.add(
         label(() ->
@@ -207,8 +214,8 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     this.pieceDescriptions = new HashMap<>();
 
     int columnWidth = 0;
-    int currentY = 0;
-    int currentX = 0;
+    int currentY = 5;
+    int currentX = 5;
     BufferedImage texture = new BufferedImage(textureSize, textureSize, BufferedImage.TYPE_INT_ARGB);
     Graphics graphics = texture.createGraphics();
 
@@ -216,14 +223,14 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
       int width = piece.getImageWidth();
       int height = piece.getImageHeight();
       // check if the current column is full.
-      if (currentY + height > textureSize) {
+      if (currentY + height > textureSize-5) {
         // yes. start next column
-        currentY = 0;
-        currentX += columnWidth;
+        currentY = 5;
+        currentX += columnWidth+5;
         columnWidth = width;
       }
       // check if current image is full
-      if (currentX + width > textureSize) {
+      if (currentX + width > textureSize-5) {
         // yes. start new image
         graphics.dispose();
         textures.add(texture);

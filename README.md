@@ -36,7 +36,8 @@ Berray TODO:
   * [x] minimizable
 * [x] small window with preview of the pieces workspace
   * [x] movable, minimizable
-  * [ ] current view is shown by a rectangle
+  * [x] current view is shown by a rectangle
+  * [ ] Bugfix: current view rectangle should not be bigger than window 
   * [ ] workspace is movable by clicking in the small window
 * [ ] change background
 * [ ] configuration scene
