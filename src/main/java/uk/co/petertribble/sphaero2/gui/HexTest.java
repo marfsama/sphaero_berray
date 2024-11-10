@@ -24,9 +24,11 @@ public class HexTest extends BerrayApplication implements CoreComponentShortcuts
 
   @Override
   public void game() {
-    String imagePath = "jigsaw/portrait_of_aloy_by_gordon87_dgtr6jh.png";
+    String imagePath = "samurai_girl_katana-wallpaper-1920x1080.jpg";// "jigsaw/portrait_of_aloy_by_gordon87_dgtr6jh.png";
 
     loadSprite("image", imagePath);
+
+    Raylib.Texture asset = getAssetManager().getSprite("image");
 
     var image = add(
         sprite("image"),
@@ -34,10 +36,11 @@ public class HexTest extends BerrayApplication implements CoreComponentShortcuts
         anchor(AnchorType.CENTER)
     );
 
-    Map<Integer, Hex> pieces = cut(50, 1024, 1024);
+    int size = 109;
+    Map<Integer, Hex> pieces = cut(size, asset.width(), asset.height());
     image.add(
         pos(0, 0),
-        new HexComponent(pieces, edges, 1024, 1024),
+        new HexComponent(pieces, edges, asset.width(), asset.height()),
         area(),
         mouse()
     );
