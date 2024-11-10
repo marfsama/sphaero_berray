@@ -64,19 +64,13 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
 
     loadSprite("preview", previewImage);
 
-    Raylib.Shader shaderOutline = LoadShader(null, "./src/main/resources/outline2.fs");
-    float outlineSize[] = {1.0f};
-    float outlineColor[] = {1.0f, 0.8f, 0.0f, 1.0f};     // Normalized RED color
+    Raylib.Shader shaderOutline = LoadShader(null, "./src/main/resources/outline.fs");
     float textureSize[] = {1024, 1024};
 
     // Get shader locations
-    int outlineSizeLoc = GetShaderLocation(shaderOutline, "outlineSize");
-    int outlineColorLoc = GetShaderLocation(shaderOutline, "outlineColor");
     int textureSizeLoc = GetShaderLocation(shaderOutline, "textureSize");
 
     // Set shader values (they can be changed later)
-    SetShaderValue(shaderOutline, outlineSizeLoc, new FloatPointer(FloatBuffer.wrap(outlineSize)), SHADER_UNIFORM_FLOAT);
-    SetShaderValue(shaderOutline, outlineColorLoc, new FloatPointer(FloatBuffer.wrap(outlineColor)), SHADER_UNIFORM_VEC4);
     SetShaderValue(shaderOutline, textureSizeLoc, new FloatPointer(FloatBuffer.wrap(textureSize)), SHADER_UNIFORM_VEC2);
 
 
@@ -85,13 +79,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
         anchor(AnchorType.TOP_LEFT)
     );
 
-    ShaderNode shaderNode = root.add(
-        new ShaderNode(shaderOutline),
-        pos(0, 0),
-        anchor(AnchorType.TOP_LEFT)
-    );
-
-    GameObject piecesNode = shaderNode.add(
+    GameObject piecesNode = root.add(
         new PiecesComponent(jigsaw.getPieces(), pieceDescriptions),
         pos(0, 0),
         scale(1.0f),
@@ -105,7 +93,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     }
     piecesNode.set("scaleFactor", (int) (initialScale * 10));
     piecesNode.add(
-        new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions)
+        new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions, shaderOutline)
     );
     GameObject selectionRectangle = piecesNode.add(
         rect(0f ,0),
@@ -153,7 +141,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     preview.set("anchor", AnchorType.TOP_LEFT);
 
     GameObject overview = make(
-        new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions),
+        new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions, shaderOutline),
         scale(1.0f, 1.0f, 1.0f)
     );
 
@@ -197,6 +185,10 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
       marker.set("pos", new Vec2(-piecesPos.getX() / piecesScale.getX(), -piecesPos.getY() / piecesScale.getY()));
       marker.set("size", new Vec2(width() / piecesScale.getX(), height() / piecesScale.getY()));
     });
+
+    addFpsLabel(color(Color.GOLD));
+    addTimingsLabel(color(Color.GOLD));
+
   }
 
   private List<BufferedImage> createTextures(List<Piece> originalPieces) {
@@ -283,6 +275,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     height(1200);
     background(Color.GRAY);
     title("Sphaero Test");
+    targetFps = -1;
   }
 
   public static void main(String[] args) {

@@ -2,7 +2,6 @@ package uk.co.petertribble.sphaero2.model;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import java.awt.geom.GeneralPath;
 import java.awt.geom.Path2D;
 
 // ### Trouble with this scheme: roundoff error, apparently.  Transformed
@@ -80,8 +79,8 @@ public class Knob {
   private final int y1;
   private final int x2;
   private final int y2;
-  private GeneralPath cPath;
-  private GeneralPath cPathReverse;
+  private Path2D cPath;
+  private Path2D cPathReverse;
 
   /**
    * Creates a new Knob, anchored on the given coordinates.
@@ -107,9 +106,9 @@ public class Knob {
 
     jitter(data, XVARY, YVARY, XDBVARY, XDFVARY);
 
-    cPath = new GeneralPath(Path2D.WIND_NON_ZERO, data.length * 3 - 2);
+    cPath = new Path2D.Float(Path2D.WIND_NON_ZERO, data.length * 3 - 2);
     cPathReverse
-        = new GeneralPath(Path2D.WIND_NON_ZERO, data.length * 3 - 2);
+        = new Path2D.Float(Path2D.WIND_NON_ZERO, data.length * 3 - 2);
     cPath.moveTo(data[0][X], data[0][Y]);
     cPathReverse.moveTo(data[data.length - 1][X], data[data.length - 1][Y]);
     for (int i = 0; i < data.length - 1; i++) {
@@ -124,7 +123,7 @@ public class Knob {
     cPathReverse.transform(affine);
   }
 
-  private void curveTo(GeneralPath path, float[][] data,
+  private void curveTo(Path2D path, float[][] data,
                        int idx, boolean forward) {
     int delta = forward ? 1 : -1;
     float cx1 = data[idx][X];
@@ -156,11 +155,11 @@ public class Knob {
    * @throws IllegalArgumentException if (x,y) is not an endpoint of this
    *                                  Knob
    */
-  public GeneralPath getCurvePath(int x, int y) {
+  public Path2D getCurvePath(int x, int y) {
     if ((x == x1) && (y == y1)) {
-      return (GeneralPath) cPath.clone();
+      return (Path2D) cPath.clone();
     } else if ((x == x2) && (y == y2)) {
-      return (GeneralPath) cPathReverse.clone();
+      return (Path2D) cPathReverse.clone();
     } else {
       throw new IllegalArgumentException(
           "Not an endpoint: (" + x + "," + y + ")");

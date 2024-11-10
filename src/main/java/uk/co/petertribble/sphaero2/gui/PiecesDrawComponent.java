@@ -7,10 +7,12 @@ import com.berray.math.Rect;
 import com.berray.math.Vec2;
 import com.raylib.Jaylib;
 import com.raylib.Raylib;
+import org.bytedeco.javacpp.FloatPointer;
 import uk.co.petertribble.sphaero2.model.MultiPiece;
 import uk.co.petertribble.sphaero2.model.Piece;
 import uk.co.petertribble.sphaero2.model.PiecesBin;
 
+import java.nio.FloatBuffer;
 import java.util.Map;
 
 import static com.raylib.Raylib.*;
@@ -18,11 +20,17 @@ import static com.raylib.Raylib.*;
 public class PiecesDrawComponent extends Component {
   private final PiecesBin pieces;
   private final Map<Integer, PieceDescription> pieceDescriptions;
+  private final Shader shader;
+  private final int highlightMask;
 
-  public PiecesDrawComponent(PiecesBin pieces, Map<Integer, PieceDescription> pieceDescriptions) {
+  public PiecesDrawComponent(PiecesBin pieces, Map<Integer, PieceDescription> pieceDescriptions, Shader shader) {
     super("piecesDraw");
     this.pieces = pieces;
     this.pieceDescriptions = pieceDescriptions;
+    this.shader = shader;
+
+    this.highlightMask = GetShaderLocation(shader, "highlightMask");
+    SetShaderValue(shader, highlightMask, new FloatPointer(FloatBuffer.wrap(new float[] {1.0f, 0.0f, 1.0f, 0.0f})), SHADER_UNIFORM_VEC4);
   }
 
   @Override
@@ -33,6 +41,7 @@ public class PiecesDrawComponent extends Component {
 
   @Override
   public void draw() {
+    BeginShaderMode(shader);
     for (Piece piece : pieces.getPieces()) {
       boolean  selected = pieces.isSelected(piece);
       if (piece instanceof MultiPiece) {
@@ -55,6 +64,7 @@ public class PiecesDrawComponent extends Component {
         drawPiece(piece, piece.getPuzzleX(), piece.getPuzzleY(), selected);
       }
     }
+    EndShaderMode();
   }
 
   private void drawPiece(Piece piece, int x, int y, boolean selected) {

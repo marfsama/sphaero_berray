@@ -24,6 +24,7 @@ public abstract class JigsawCutter {
       new SquareCutter(),
       new RectCutter(),
       new QuadCutter(),
+      new HexCutter()
   };
 
   public int prefPieces = DEFAULT_PIECES;
