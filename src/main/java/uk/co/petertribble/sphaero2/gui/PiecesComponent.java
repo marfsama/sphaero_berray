@@ -11,9 +11,8 @@ import com.berray.math.Vec2;
 import com.berray.math.Vec3;
 import com.raylib.Raylib;
 import uk.co.petertribble.sphaero2.model.Piece;
+import uk.co.petertribble.sphaero2.model.PieceSet;
 import uk.co.petertribble.sphaero2.model.PiecesBin;
-
-import java.util.Map;
 
 import static com.berray.event.CoreEvents.*;
 import static com.raylib.Raylib.*;
@@ -21,7 +20,6 @@ import static com.raylib.Raylib.*;
 public class PiecesComponent extends Component {
 
   private final PiecesBin pieces;
-  private final Map<Integer, PieceDescription> pieceDescriptions;
   private DragMode dragMode;
   /**
    * Position, where the mouse button was initially pressed down, in game object coordinate space.
@@ -45,13 +43,14 @@ public class PiecesComponent extends Component {
   private int scaleFactor = 10;
 
   private Rect selectionRectangle = null;
+
   private boolean selectionModifierPressed = false;
+  private boolean selectionRectangleModifierPressed = false;
 
 
-  public PiecesComponent(PiecesBin pieces, Map<Integer, PieceDescription> pieceDescriptions) {
+  public PiecesComponent(PiecesBin pieces) {
     super("pieceBoard", "area", "pos", "scale");
     this.pieces = pieces;
-    this.pieceDescriptions = pieceDescriptions;
   }
 
   @Override
@@ -71,6 +70,8 @@ public class PiecesComponent extends Component {
 
     // override bounding box so we get all mouse events.
     registerGetter("boundingBox", () -> new Rect(0, 0, gameObject.getGame().width(), gameObject.getGame().height()));
+
+    registerGetter("selectionRectangle", this::getSelectionRectangle);
 
     registerBoundProperty("scaleFactor", this::getScaleFactor, this::setScaleFactor);
 
@@ -97,6 +98,10 @@ public class PiecesComponent extends Component {
     gameObject.set("scale", new Vec2(scale, scale));
   }
 
+  public Rect getSelectionRectangle() {
+    return selectionRectangle;
+  }
+
   private void onMouseWheelMove(MouseWheelEvent event) {
     Vec2 oldPos = event.getGameObjectPos();
     setScaleFactor((int) (scaleFactor + event.getWheelDelta()));
@@ -110,9 +115,12 @@ public class PiecesComponent extends Component {
   }
 
   private void onKeyUp(KeyEvent event) {
+    if (event.getKeyCode() == KEY_LEFT_CONTROL || event.getKeyCode() == KEY_RIGHT_CONTROL) {
+      selectionModifierPressed = false;
+    }
     if (event.getKeyCode() == KEY_LEFT_SHIFT || event.getKeyCode() == KEY_RIGHT_SHIFT) {
       Raylib.SetMouseCursor(Raylib.MOUSE_CURSOR_DEFAULT);
-      selectionModifierPressed = false;
+      selectionRectangleModifierPressed = false;
       if (dragMode == DragMode.SELECTION_RECTANGLE) {
         dragMode = DragMode.NONE;
       }
@@ -120,9 +128,12 @@ public class PiecesComponent extends Component {
   }
 
   private void onKeyDown(KeyEvent event) {
+    if (event.getKeyCode() == KEY_LEFT_CONTROL || event.getKeyCode() == KEY_RIGHT_CONTROL) {
+      selectionModifierPressed = true;
+    }
     if (event.getKeyCode() == KEY_LEFT_SHIFT || event.getKeyCode() == KEY_RIGHT_SHIFT) {
       Raylib.SetMouseCursor(Raylib.MOUSE_CURSOR_CROSSHAIR);
-      selectionModifierPressed = true;
+      selectionRectangleModifierPressed = true;
     }
   }
 
@@ -145,9 +156,11 @@ public class PiecesComponent extends Component {
         Vec3 scale = gameObject.get("scale");
         var game = gameObject.getGame();
         if (selectionRectangle != null) {
-          Vec2 pos = gameObject.worldPosToLocalPos(selectionRectangle.getPos());
-          pieces.shuffle(new Rect(pos.getX(), pos.getY(), selectionRectangle.getWidth() / scale.getX(), selectionRectangle.getHeight() / scale.getY()));
+          // shuffle only pieces in selection rectangle (and move them just in the rectangle around)
+          Vec2 pos = selectionRectangle.getPos();
+          pieces.shuffle(new Rect(pos.getX(), pos.getY(), selectionRectangle.getWidth(), selectionRectangle.getHeight()));
         } else {
+          // shuffle all pieces currently on screen
           Vec2 pos = gameObject.get("pos");
           pieces.shuffle(new Rect(-pos.getX(), -pos.getY(), (game.width() / scale.getX()), (game.height() / scale.getY())));
         }
@@ -156,20 +169,15 @@ public class PiecesComponent extends Component {
       // stack. Only works with selection. Move all pieces in selection to the center of the selection
       case KEY_S:
         if (selectionRectangle != null) {
-          Vec3 scale = gameObject.get("scale");
-          Vec2 pos = gameObject.worldPosToLocalPos(selectionRectangle.getPos());
-          Rect localRect = new Rect(pos.getX(), pos.getY(), selectionRectangle.getWidth() / scale.getX(), selectionRectangle.getHeight() / scale.getY());
-          Vec2 center = localRect.getCenter();
-          for (Piece piece : pieces.getPieces()) {
-            if (localRect.contains(piece.getPuzzleX(), piece.getPuzzleY()) ||
-                localRect.contains(piece.getPuzzleX()+piece.getCurrentWidth(), piece.getPuzzleY()) ||
-                localRect.contains(piece.getPuzzleX(), piece.getPuzzleY() + piece.getCurrentHeight()) ||
-                localRect.contains(piece.getPuzzleX()+piece.getCurrentWidth(), piece.getPuzzleY() + piece.getCurrentHeight())
-            ) {
-              pieces.movePieceTo(piece, (int) center.getX(), (int) center.getY());
-            }
-          }
+          Vec2 center = selectionRectangle.getCenter();
+          PieceSet selected = pieces.getPiecesInRect(selectionRectangle);
+          selected.stack(center);
+        } else {
+          PieceSet selectedPieces = pieces.getSelected();
+          Vec2 center = selectedPieces.getCenter();
+          selectedPieces.stack(center);
         }
+
         break;
     }
   }
@@ -180,7 +188,7 @@ public class PiecesComponent extends Component {
   }
 
   private void onDragStart(MouseEvent event) {
-    if (selectionModifierPressed) {
+    if (selectionRectangleModifierPressed) {
       dragMode = DragMode.SELECTION_RECTANGLE;
       dragStart = mouseDownPosition;
       GameObject selectionNode = gameObject.getChildren("selectionRectangle").get(0);
@@ -191,24 +199,32 @@ public class PiecesComponent extends Component {
     }
 
     this.clickedPiece = pieces.getPieceAt((int) mouseDownPosition.getX(), (int) mouseDownPosition.getY());
-    if (clickedPiece == null) {
+    if (clickedPiece == null && event.getButtonState(MouseEvent.Button.RIGHT) == MouseEvent.ButtonState.DOWN) {
+      // only drag table with right mouse button
       this.dragMode = DragMode.TABLE;
       this.dragStart = gameObject.get("pos");
       return;
     }
-    // a piece was clicked.
-    if (pieces.isSelected(clickedPiece)) {
-      dragMode = DragMode.SELECTED_PIECES;
-      dragStart = pieces.getSelectedAnchor();
-    } else {
-      pieces.clearSelection();
-      pieces.moveToTop(clickedPiece);
-      dragMode = DragMode.SINGLE_PIECE;
-      dragStart = new Vec2(clickedPiece.getPuzzleX(), clickedPiece.getPuzzleY());
+
+    if (clickedPiece != null) {
+      // a piece was clicked.
+      if (pieces.getSelected().contains(clickedPiece)) {
+        dragMode = DragMode.SELECTED_PIECES;
+        dragStart = pieces.getSelected().getAnchor();
+      } else {
+        pieces.getSelected().clear();
+        pieces.moveToTop(clickedPiece);
+        dragMode = DragMode.SINGLE_PIECE;
+        dragStart = new Vec2(clickedPiece.getPuzzleX(), clickedPiece.getPuzzleY());
+      }
     }
   }
 
   private void onDragging(MouseEvent event) {
+    if (dragMode == null) {
+      return;
+    }
+
     Vec2 clickPosition = event.getGameObjectPos();
     Vec2 delta = clickPosition.sub(mouseDownPosition);
 
@@ -224,17 +240,18 @@ public class PiecesComponent extends Component {
         GameObject selectionNode = gameObject.getChildren("selectionRectangle").get(0);
         selectionNode.set("size", delta);
         break;
-      case SELECTED_PIECES:
-        Vec2 anchor = pieces.getSelectedAnchor();
+      case SELECTED_PIECES: {
+        Vec2 anchor = pieces.getSelected().getAnchor();
         // calculate vector by which we moved the pieces already
         var alreadyMoved = anchor.sub(dragStart);
         // calculate delta to total drag vector
         // this is the amount we need to move the selection
         var selectedDelta = delta.sub(alreadyMoved);
         if (selectedDelta.lengthSquared() > 1.0f) {
-          pieces.moveSelected(selectedDelta);
+          pieces.getSelected().moveBy(selectedDelta);
         }
         break;
+      }
       case SINGLE_PIECE:
         float x = dragStart.getX() + delta.getX();
         float y = dragStart.getY() + delta.getY();
@@ -244,6 +261,10 @@ public class PiecesComponent extends Component {
   }
 
   private void onDragFinish(MouseEvent event) {
+    if (dragMode == null) {
+      return;
+    }
+
     switch (dragMode) {
       case SINGLE_PIECE:
         Piece newPiece = pieces.join(clickedPiece);
@@ -259,7 +280,16 @@ public class PiecesComponent extends Component {
       case SELECTION_RECTANGLE:
         Vec2 delta = event.getGameObjectPos().sub(mouseDownPosition);
         selectionRectangle = new Rect(dragStart, delta).normalize();
+        var piecesInRectangle = pieces.getPiecesInRect(selectionRectangle);
+        pieces.getSelected().addAll(piecesInRectangle);
     }
+
+    // only one piece left: the puzzle is done.
+    if (pieces.getPieces().size() == 1) {
+      gameObject.getGame().trigger("gameFinished", gameObject);
+    }
+
+
     this.dragMode = DragMode.NONE;
   }
 
@@ -276,10 +306,10 @@ public class PiecesComponent extends Component {
           // select/unselect piece
           Piece clickedPiece = pieces.getPieceAt((int) clickPosition.getX(), (int) clickPosition.getY());
           if (clickedPiece != null) {
-            if (pieces.isSelected(clickedPiece)) {
-              pieces.removeSelection(clickedPiece);
+            if (pieces.getSelected().contains(clickedPiece)) {
+              pieces.getSelected().remove(clickedPiece);
             } else {
-              pieces.addSelection(clickedPiece);
+              pieces.getSelected().add(clickedPiece);
             }
             this.clickedPiece = clickedPiece;
           }
@@ -290,7 +320,7 @@ public class PiecesComponent extends Component {
           selectionRectangle = null;
           GameObject selectionNode = gameObject.getChildren("selectionRectangle").get(0);
           selectionNode.setPaused(true);
-          pieces.clearSelection();
+          pieces.getSelected().clear();
 
           Piece clickedPiece = pieces.getPieceAt((int) clickPosition.getX(), (int) clickPosition.getY());
           if (clickedPiece != null) {

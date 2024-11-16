@@ -13,6 +13,7 @@ import com.berray.math.Vec3;
 import com.raylib.Raylib;
 import org.bytedeco.javacpp.FloatPointer;
 import uk.co.petertribble.sphaero2.JigUtil;
+import uk.co.petertribble.sphaero2.cutter.ClassicCutter;
 import uk.co.petertribble.sphaero2.model.Jigsaw;
 import uk.co.petertribble.sphaero2.model.JigsawParam;
 import uk.co.petertribble.sphaero2.model.Piece;
@@ -46,7 +47,8 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     BufferedImage sourceImage = getImage(imagePath);
     JigsawParam params = new JigsawParam();
     params.setFilename(new File(imagePath));
-    params.setPieces(20);
+    params.setPieces(9);
+    params.setCutter(new ClassicCutter());
     Jigsaw jigsaw = new Jigsaw(params, sourceImage);
     System.out.println("cutting...");
     jigsaw.reset(true, width(), height());
@@ -80,7 +82,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     );
 
     GameObject piecesNode = root.add(
-        new PiecesComponent(jigsaw.getPieces(), pieceDescriptions),
+        new PiecesComponent(jigsaw.getPieces()),
         pos(0, 0),
         scale(1.0f),
         area(),
@@ -112,7 +114,8 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
                 "# mouse pos: " + piecesNode.get("mousePos", null) + "\n" +
                 "# scale: " + piecesNode.get("scaleFactor", null) + "\n"+
                 "# pos: " + piecesNode.get("pos", null) + "\n"+
-                "# rect: " + jigsaw.getPieces().getRect() + "\n"
+                "# rect: " + jigsaw.getPieces().getRect() + "\n"+
+                "# select: " + piecesNode.get("selectionRectangle", null) + "\n"
         ),
         pos(0, 0),
         anchor(AnchorType.TOP_LEFT),
@@ -189,6 +192,20 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     addFpsLabel(color(Color.GOLD));
     addTimingsLabel(color(Color.GOLD));
 
+    on("gameFinished", event -> go("finish"));
+
+    scene("finish", sceneDescription -> {
+      // reset puzzle position of the last piece.
+      Rect pos = new Rect(0, 0, width(), height()).getFitRectangle(new Rect(0, 0, sourceImage.getWidth(), sourceImage.getHeight()));
+
+      jigsaw.getPieces().getPieces().forEach(piece -> piece.setPuzzlePosition(0,0));
+      sceneDescription.add(
+          new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions, shaderOutline),
+          pos(pos.getPos()),
+          scale(pos.getWidth() / sourceImage.getWidth())
+      );
+    });
+
   }
 
   private List<BufferedImage> createTextures(List<Piece> originalPieces) {
@@ -250,24 +267,6 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
       throw new IllegalStateException("cannot load image " + filename, e);
     }
   }
-
-  public static BufferedImage toBufferedImage(Image img) {
-    if (img instanceof BufferedImage) {
-      return (BufferedImage) img;
-    }
-
-    // Create a buffered image with transparency
-    BufferedImage bimage = new BufferedImage(img.getWidth(null), img.getHeight(null), BufferedImage.TYPE_INT_ARGB);
-
-    // Draw the image on to the buffered image
-    Graphics2D bGr = bimage.createGraphics();
-    bGr.drawImage(img, 0, 0, null);
-    bGr.dispose();
-
-    // Return the buffered image
-    return bimage;
-  }
-
 
   @Override
   public void initWindow() {

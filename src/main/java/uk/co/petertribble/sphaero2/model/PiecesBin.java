@@ -1,7 +1,6 @@
 package uk.co.petertribble.sphaero2.model;
 
 import com.berray.math.Rect;
-import com.berray.math.Vec2;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,7 +23,7 @@ public class PiecesBin {
   /**
    * Selected pieces, if any
    */
-  private Set<Piece> selected = new LinkedHashSet<>();
+  private PieceSet selected = new PieceSet();
 
   public PiecesBin(PiecesBin piecesBin) {
     this(piecesBin.idProvider, piecesBin.name, piecesBin.pieces);
@@ -44,42 +43,23 @@ public class PiecesBin {
     return pieces;
   }
 
-  public Set<Piece> getSelected() {
+  public PieceSet getSelected() {
     return selected;
   }
 
-  /**
-   * Returns the anchor for the selected set. The anchor can be an arbitrary position. It is guaranteed to be stable (the same for 2 calls)
-   * and when the whole set is @{link {@link #moveSelected(Vec2)} moved}, the anchor is moved by the same amount.
-   */
-  public Vec2 getSelectedAnchor() {
-    Piece anchorPiece = selected.iterator().next();
-    return new Vec2(anchorPiece.getPuzzleX(), anchorPiece.getPuzzleY());
-  }
+  public PieceSet getPiecesInRect(Rect localRect) {
+    PieceSet piecesInRect = new PieceSet();
 
-  public void moveSelected(Vec2 delta) {
-    for (Piece piece : selected) {
-      int x = (int) (piece.getPuzzleX() + delta.getX());
-      int y = (int) (piece.getPuzzleY() + delta.getY());
-      piece.moveTo(x, y);
+    for (Piece piece : pieces) {
+      if (localRect.contains(piece.getPuzzleX(), piece.getPuzzleY()) ||
+          localRect.contains(piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY()) ||
+          localRect.contains(piece.getPuzzleX(), piece.getPuzzleY() + piece.getCurrentHeight()) ||
+          localRect.contains(piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY() + piece.getCurrentHeight())
+      ) {
+        piecesInRect.add(piece);
+      }
     }
-  }
-
-
-  public boolean isSelected(Piece piece) {
-    return selected.contains(piece);
-  }
-
-  public void addSelection(Piece piece) {
-    selected.add(piece);
-  }
-
-  public void clearSelection() {
-    selected.clear();
-  }
-
-  public void removeSelection(Piece piece) {
-    selected.remove(piece);
+    return piecesInRect;
   }
 
 

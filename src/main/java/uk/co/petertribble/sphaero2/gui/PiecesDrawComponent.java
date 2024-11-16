@@ -43,7 +43,7 @@ public class PiecesDrawComponent extends Component {
   public void draw() {
     BeginShaderMode(shader);
     for (Piece piece : pieces.getPieces()) {
-      boolean  selected = pieces.isSelected(piece);
+      boolean  selected = pieces.getSelected().contains(piece);
       if (piece instanceof MultiPiece) {
         MultiPiece multiPiece = (MultiPiece) piece;
         for (Piece subPiece : multiPiece.getSubs()) {
@@ -71,7 +71,7 @@ public class PiecesDrawComponent extends Component {
     PieceDescription pieceDescription = pieceDescriptions.get(piece.getId());
     if (pieceDescription != null) {
       Raylib.Texture texture = getAssetManager().getAsset("pieces_" + pieceDescription.getTexture()).getAsset();
-      Color color = Color.WHITE;
+      Color color = selected ? Color.GOLD : Color.WHITE;
 
       Rect texturePosition = pieceDescription.getTexturePosition();
       Vec2 center = new Vec2(piece.getImageWidth() / 2.0f, piece.getImageHeight() / 2.0f);

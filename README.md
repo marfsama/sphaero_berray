@@ -25,12 +25,12 @@ Berray TODO:
   * [x] set initial zoom so the entire image can be visible
   * [x] zoom to mouse cursor
 * [x] fix bug: join pieces and press rotate. The last piece is rotated instead of the combined piece 
-* [ ] select pieces
-  * [ ] shilft draws selection rectangle
-  * [ ] crtl selects single piece
-  * [ ] collect selected piece to one big pile
-  * [ ] disperse selected pieces so there is no overlap
-* [ ] finish scene
+* [x] select pieces
+  * [x] shilft draws selection rectangle
+  * [x] crtl selects single piece
+  * [x] collect selected piece to one big pile
+  * [x] disperse selected pieces so there is no overlap
+* [x] finish scene
 * [x] small window with preview of the final image
   * [x] movable
   * [x] minimizable
@@ -40,6 +40,7 @@ Berray TODO:
   * [ ] Bugfix: current view rectangle should not be bigger than window 
   * [ ] workspace is movable by clicking in the small window
 * [ ] change background
+* [ ] change selection color
 * [ ] configuration scene
   * [ ] image panel (image preview, piece preview)
   * [ ] text field (file name)
@@ -48,31 +49,20 @@ Berray TODO:
   * [ ] select image dialog
 * [ ] load/save
 * [ ] Bugfix: set shader values: which edge should be drawn highlighted or darkened
+  * [ ] or simply add an outline to selected pieces? 
   * [ ] option to "don't draw piece highlight on combined edges"
+    * maybe don't use shader to draw highlights but create additional textures 
 * [ ] show (outline of) hidden pieces
 * [ ] additional cutters
   * euler tiles
-    * hexagons
+    * [x] hexagons
+    * [ ] rotate other than 90°
     * rows shifted each 2nd row
   * triangles which can be rotated 120 degrees?
     * https://www.anitasfeast.com/blog/2013/09/the-hagues-escher-in-het-palais/
     * https://www.researchgate.net/figure/Artistic-tiling-Escher-55_fig5_328137631
     * http://artwithmrsseitz.blogspot.com/2015/04/mc-escher-tessellations.html
+    * http://en.tessellations-nicolas.com/method.php
 
-
-
-TODO:
-* move panel with click and drag
-* select multiple pieces and move them
-* move piece(s) to another panel.
-* better file chooser
-* first dialog should show preview of selected image
-* crop selected image
-* hide cutting in finished pieces
-
-Reorder pieces:
-* stack selected pieces
-* unstack selected pieces
 * order by hue
 * order by number of knobs
-* 
