@@ -2,7 +2,7 @@ package uk.co.petertribble.sphaero2;
 
 import uk.co.petertribble.sphaero2.components.*;
 import uk.co.petertribble.sphaero2.components.play.*;
-import uk.co.petertribble.sphaero2.components.select.SelectImagePanel;
+import uk.co.petertribble.sphaero2.components.select.SelectImageFrame;
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.*;
 
@@ -63,21 +63,18 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
   public static final int THUMB_HEIGHT = 150;
   public static final int THUMB_WIDTH = 150;
-  private JMenuBar jmb;
+  private JMenuBar manuBar;
   private JMenu jmh;
   private JMenuItem newItem;
   private JMenuItem exitItem;
   private JMenuItem helpItem;
   private JMenuItem aboutItem;
-  private JMenuItem pictureItem;
-  private Image image;
-  private Icon miniImage;
   private Jigsaw jigsaw;
 
 
   private int pHeight = 480;
   private int pWidth = 640;
-  private SelectImagePanel selectImagePanel;
+  private SelectImageFrame selectImageFrame;
   private JButton save;
   private JLabel progressLabel;
   private TimeLabel tlabel;
@@ -143,12 +140,12 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private void initFrameWork() {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-    this.selectImagePanel = new SelectImagePanel();
-    selectImagePanel.addPropertyChangeListener(event -> {
-      if (SelectImagePanel.JIGSAW_PARAMS.equals(event.getPropertyName())) {
+    this.selectImageFrame = new SelectImageFrame();
+    selectImageFrame.addPropertyChangeListener(event -> {
+      if (SelectImageFrame.JIGSAW_PARAMS.equals(event.getPropertyName())) {
         JigsawParam params = (JigsawParam) event.getNewValue();
         setupPuzzle(params);
-      } else if (SelectImagePanel.JIGSAW.equals(event.getPropertyName())) {
+      } else if (SelectImageFrame.JIGSAW.equals(event.getPropertyName())) {
         Jigsaw jigsaw = (Jigsaw) event.getNewValue();
         init(jigsaw, false);
       }
@@ -168,12 +165,11 @@ public class JigsawFrame extends JFrame implements ActionListener {
     exitItem.addActionListener(this);
     jmf.add(exitItem);
 
-    jmb = new JMenuBar();
-    jmb.add(jmf);
-    setJMenuBar(jmb);
+    manuBar = new JMenuBar();
+    manuBar.add(jmf);
+    setJMenuBar(manuBar);
 
-    setIconImage(new ImageIcon(this.getClass().getClassLoader()
-        .getResource("pixmaps/sphaero2.png")).getImage());
+    setIconImage(new ImageIcon(this.getClass().getClassLoader().getResource("pixmaps/sphaero2.png")).getImage());
 
     /*
      * Create the help menu for the puzzle here, even though it's only
@@ -187,9 +183,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
     aboutItem = new JMenuItem("About", KeyEvent.VK_A);
     aboutItem.addActionListener(this);
     jmh.add(aboutItem);
-    pictureItem = new JMenuItem("Show Picture", KeyEvent.VK_P);
-    pictureItem.addActionListener(this);
-    jmh.add(pictureItem);
   }
 
   private void init(Jigsaw jigsaw, boolean cut) {
@@ -254,7 +247,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
       jigsaw.reset();
       dialog.setVisible(false);
     }
-    jmb.add(jmh);
+    manuBar.add(jmh);
     repaint();
     tlabel.start();
     puzzle.setTimeLabel(tlabel);
@@ -278,8 +271,8 @@ public class JigsawFrame extends JFrame implements ActionListener {
   }
 
   private void initSelectImagePrompt() {
-    selectImagePanel.refresh();
-    setContentPane(selectImagePanel);
+    selectImageFrame.refresh();
+    setContentPane(selectImageFrame);
     setSize(pWidth, pHeight);
     setVisible(true);
   }
@@ -292,22 +285,11 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
   private void showPrompt() {
     getContentPane().removeAll();
-    jmb.remove(jmh);
-    jmb.revalidate();
-    miniImage = null;
+    manuBar.remove(jmh);
+    manuBar.revalidate();
     System.gc();
     initSelectImagePrompt();
   }
-
-  private void showPicture() {
-    if (miniImage == null) {
-      miniImage = new ImageIcon(image.getScaledInstance(200, -1,
-          Image.SCALE_FAST));
-    }
-    JOptionPane.showMessageDialog(this, miniImage,
-        "Quick view", JOptionPane.PLAIN_MESSAGE);
-  }
-
 
   private void setupPuzzle(JigsawParam params) {
     // Get the image.
@@ -318,16 +300,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
           "Nonexistent file", JOptionPane.ERROR_MESSAGE);
       return;
     }
-    if (file.isDirectory()) {
-      try {
-        file = JigUtil.getRandomImageFile(file);
-      } catch (FileNotFoundException ex) {
-        JOptionPane.showMessageDialog(this,
-            "This folder contains no images.",
-            "Empty folder", JOptionPane.ERROR_MESSAGE);
-        return;
-      }
-    } else if (!JigUtil.isImage(file)) {
+    if (!JigUtil.isImage(file)) {
       JOptionPane.showMessageDialog(this, "This is not an image file.",
           "Invalid Image", JOptionPane.ERROR_MESSAGE);
       return;
@@ -343,10 +316,13 @@ public class JigsawFrame extends JFrame implements ActionListener {
       // FIXME this doesn't actually show the window properly until
       // after the pieces have been cut???
       // So the progress bar doesn't work either
+      Rectangle rectangle = params.getRectangle();
+      if (rectangle != null) {
+        image = image.getSubimage(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+      }
       init(new Jigsaw(params, JigUtil.resizeImage(image)), true);
     } catch (IOException e) {
-      JOptionPane.showMessageDialog(this, "Image file cannot be read.",
-          "Invalid Image", JOptionPane.ERROR_MESSAGE);
+      JOptionPane.showMessageDialog(this, "Image file cannot be read.", "Invalid Image", JOptionPane.ERROR_MESSAGE);
     }
   }
 
@@ -363,8 +339,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
     } else if (e.getSource() == aboutItem) {
       JOptionPane.showMessageDialog(this, JigUtil.aboutMsg(),
           "About Sphaero2", JOptionPane.PLAIN_MESSAGE);
-    } else if (e.getSource() == pictureItem) {
-      showPicture();
     }
   }
 

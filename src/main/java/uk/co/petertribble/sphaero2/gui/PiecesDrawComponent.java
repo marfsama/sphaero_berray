@@ -5,7 +5,6 @@ import com.berray.components.core.Component;
 import com.berray.math.Color;
 import com.berray.math.Rect;
 import com.berray.math.Vec2;
-import com.raylib.Jaylib;
 import com.raylib.Raylib;
 import org.bytedeco.javacpp.FloatPointer;
 import uk.co.petertribble.sphaero2.model.MultiPiece;
@@ -58,7 +57,7 @@ public class PiecesDrawComponent extends Component {
           drawPiece(subPiece, piece.getPuzzleX() + deltaX, piece.getPuzzleY() + deltaY, false);
         }
         if (selected) {
-          DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
+          DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Color.GOLD.toRaylibColor());
         }
       } else {
         drawPiece(piece, piece.getPuzzleX(), piece.getPuzzleY(), selected);
@@ -85,7 +84,7 @@ public class PiecesDrawComponent extends Component {
           color.toRaylibColor());
 
       if (selected) {
-        DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Jaylib.GOLD);
+        DrawRectangleLines(piece.getPuzzleX(), piece.getPuzzleY(), piece.getCurrentWidth(), piece.getCurrentHeight(), Color.GOLD.toRaylibColor());
       }
     }
 

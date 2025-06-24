@@ -19,7 +19,6 @@ import uk.co.petertribble.sphaero2.model.JigsawParam;
 import uk.co.petertribble.sphaero2.model.Piece;
 
 import javax.imageio.ImageIO;
-import java.awt.Image;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -31,8 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 
 import static com.berray.objects.core.Label.label;
-import static com.berray.objects.gui.panel.PanelBuilder.makePanel;
-import static com.berray.objects.gui.panel.RowBuilder.makeRow;
+import static com.berray.objects.guiold.panel.PanelBuilder.makePanel;
+import static com.berray.objects.guiold.panel.RowBuilder.makeRow;
 import static com.raylib.Raylib.*;
 
 
@@ -47,7 +46,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     BufferedImage sourceImage = getImage(imagePath);
     JigsawParam params = new JigsawParam();
     params.setFilename(new File(imagePath));
-    params.setPieces(9);
+    params.setPieces(200);
     params.setCutter(new ClassicCutter());
     Jigsaw jigsaw = new Jigsaw(params, sourceImage);
     System.out.println("cutting...");
@@ -67,13 +66,13 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     loadSprite("preview", previewImage);
 
     Raylib.Shader shaderOutline = LoadShader(null, "./src/main/resources/outline.fs");
-    float textureSize[] = {1024, 1024};
+    Vec2 textureSize = new Vec2(1024, 1024);
 
     // Get shader locations
     int textureSizeLoc = GetShaderLocation(shaderOutline, "textureSize");
 
     // Set shader values (they can be changed later)
-    SetShaderValue(shaderOutline, textureSizeLoc, new FloatPointer(FloatBuffer.wrap(textureSize)), SHADER_UNIFORM_VEC2);
+    SetShaderValue(shaderOutline, textureSizeLoc, textureSize.toVector2(), SHADER_UNIFORM_VEC2);
 
 
     var root = add(
@@ -98,8 +97,8 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
         new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions, shaderOutline)
     );
     GameObject selectionRectangle = piecesNode.add(
-        rect(0f ,0),
-        pos(0,0),
+        rect(0f, 0),
+        pos(0, 0),
         anchor(AnchorType.TOP_LEFT),
         color(new Color(173, 216, 230, 128)), // light blue
         "selectionRectangle"
@@ -112,9 +111,9 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
             "# Pieces: " + jigsaw.getPieces().getPieces().size() + "\n" +
                 "# Textures: " + textures.size() + "\n" +
                 "# mouse pos: " + piecesNode.get("mousePos", null) + "\n" +
-                "# scale: " + piecesNode.get("scaleFactor", null) + "\n"+
-                "# pos: " + piecesNode.get("pos", null) + "\n"+
-                "# rect: " + jigsaw.getPieces().getRect() + "\n"+
+                "# scale: " + piecesNode.get("scaleFactor", null) + "\n" +
+                "# pos: " + piecesNode.get("pos", null) + "\n" +
+                "# rect: " + jigsaw.getPieces().getRect() + "\n" +
                 "# select: " + piecesNode.get("selectionRectangle", null) + "\n"
         ),
         pos(0, 0),
@@ -150,7 +149,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
 
     overview.add(
         rect(width(), height()).fill(false).lineThickness(10),
-        pos(0,0),
+        pos(0, 0),
         color(Color.WHITE),
         anchor(AnchorType.TOP_LEFT),
         "marker"
@@ -198,7 +197,11 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
       // reset puzzle position of the last piece.
       Rect pos = new Rect(0, 0, width(), height()).getFitRectangle(new Rect(0, 0, sourceImage.getWidth(), sourceImage.getHeight()));
 
-      jigsaw.getPieces().getPieces().forEach(piece -> piece.setPuzzlePosition(0,0));
+      jigsaw.getPieces().getPieces().forEach(piece -> {
+            piece.setPuzzlePosition(0, 0);
+            piece.setRotation(0);
+          }
+      );
       sceneDescription.add(
           new PiecesDrawComponent(jigsaw.getPieces(), pieceDescriptions, shaderOutline),
           pos(pos.getPos()),
@@ -232,14 +235,14 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
       int width = piece.getImageWidth();
       int height = piece.getImageHeight();
       // check if the current column is full.
-      if (currentY + height > textureSize-5) {
+      if (currentY + height > textureSize - 5) {
         // yes. start next column
         currentY = 5;
-        currentX += columnWidth+5;
+        currentX += columnWidth + 5;
         columnWidth = width;
       }
       // check if current image is full
-      if (currentX + width > textureSize-5) {
+      if (currentX + width > textureSize - 5) {
         // yes. start new image
         graphics.dispose();
         textures.add(texture);
@@ -262,7 +265,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
 
   private static BufferedImage getImage(String filename) {
     try {
-      return ImageIO.read(new File(filename));
+      return JigUtil.resizeImage(ImageIO.read(new File(filename)));
     } catch (IOException e) {
       throw new IllegalStateException("cannot load image " + filename, e);
     }

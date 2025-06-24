@@ -21,7 +21,7 @@ public class HexCutter extends JigsawCutter {
 
   @Override
   public String getDescription() {
-    return "Pieces are cut to hexagons. The borders are <b>not</b> straight but are cut to have the hex pattern. There are no knobs.";
+    return "Pieces are cut to hexagons. The borders are <b>not</b> straight but are cut to have the hex pattern.";
   }
 
   @Override
@@ -55,7 +55,6 @@ public class HexCutter extends JigsawCutter {
       int c = (int) (width / (Math.cos(Math.toRadians(30)) * s * 2));
       int r = (int) (height / (Math.cos(Math.toRadians(60)) * s + s));
       p = c * r;
-      System.out.println("size "+s+": rows "+r+" cols: "+c+" pieces: "+p);
     } while ( p > prefPieces);
     size = s;
 
@@ -67,8 +66,6 @@ public class HexCutter extends JigsawCutter {
     List<List<Hex>> hexGrid = createHexTiles(points);
     updateHexNeighbours(hexGrid);
     Map<Integer, Hex> hexMap = toMap(hexGrid);
-    System.out.println("final number of pieces: "+hexMap.size());
-
     // cut pieces
     Map<Integer, Piece> pieces = cutPieces(image, hexMap, edges, width, height);
 

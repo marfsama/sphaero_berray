@@ -47,8 +47,8 @@ public final class JigUtil {
    */
   public static BufferedImage resizeImage(BufferedImage image) {
     Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-    int maxWidth = 3 * screen.width / 5;
-    int maxHeight = 3 * screen.height / 5;
+    int maxWidth = screen.width -50;
+    int maxHeight = screen.height - 50;
     return resizeImage(image, maxWidth, maxHeight);
   }
 
