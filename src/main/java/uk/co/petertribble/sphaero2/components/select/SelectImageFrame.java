@@ -46,9 +46,6 @@ public class SelectImageFrame extends JPanel implements ActionListener {
 
   private JTextField imageFileNameField;
   private JButton browseButton;
-  private JComboBox<JigsawCutter> cutterCBox;
-  private JSpinner pieceSpinner;
-  private JLabel cutterDescLabel;
   private JButton okButton;
   private JigsawResumeListPanel jigsawResumePanel;
   private ImagePropertiesPanel propertiesPanel;
@@ -79,29 +76,6 @@ public class SelectImageFrame extends JPanel implements ActionListener {
     imageBPane.add(Box.createRigidArea(new Dimension(10, 0)));
     imageBPane.add(browseButton);
 
-
-    cutterCBox = new JComboBox<>(JigsawCutter.cutters);
-    cutterCBox.setSelectedItem(jigsawParams.getCutter());
-    cutterCBox.addActionListener(this);
-
-    cutterDescLabel = createHelpLabel(null);
-    JPanel cutterPane = new JPanel(new BorderLayout());
-    cutterPane.add(cutterCBox, BorderLayout.NORTH);
-    cutterPane.add(cutterDescLabel, BorderLayout.CENTER);
-    cutterPane.setBorder(createTitledBorder("Piece Style"));
-    fireCutterChanged();
-
-    pieceSpinner = new JSpinner(new SpinnerNumberModel(
-        DEFAULT_PIECES, JigsawCutter.MIN_PIECES,
-        JigsawCutter.MAX_PIECES, 1));
-    JLabel pieceLabel = createHelpLabel("<html>"
-        + " The puzzle will have roughly this many pieces.");
-    JPanel piecePane = new JPanel(new BorderLayout());
-    piecePane.add(pieceSpinner, BorderLayout.NORTH);
-    piecePane.add(pieceLabel, BorderLayout.CENTER);
-    piecePane.setBorder(createTitledBorder("Piece Count"));
-    pieceSpinner.addChangeListener(event -> jigsawParams.setPieces((Integer) pieceSpinner.getValue()));
-
     JPanel okPanel = new JPanel();
     okPanel.setLayout(new BoxLayout(okPanel, BoxLayout.LINE_AXIS));
     okPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -123,8 +97,6 @@ public class SelectImageFrame extends JPanel implements ActionListener {
 
     mainPane.add(imageBPane);
     mainPane.add(propertiesPanel);
-    mainPane.add(piecePane);
-    mainPane.add(cutterPane);
     mainPane.add(resumePane);
     mainPane.add(okPanel);
   }
@@ -140,7 +112,7 @@ public class SelectImageFrame extends JPanel implements ActionListener {
    */
   private File getCurrentFolder() {
     String text = imageFileNameField.getText().trim();
-    return new File((text.length() == 0) ? "." : text);
+    return new File(text.isEmpty() ? "." : text);
   }
 
   /**
@@ -171,12 +143,6 @@ public class SelectImageFrame extends JPanel implements ActionListener {
     return BorderFactory.createCompoundBorder(outer, inner);
   }
 
-  private void fireCutterChanged() {
-    JigsawCutter cutter = (JigsawCutter) cutterCBox.getSelectedItem();
-    cutterDescLabel.setText("<html>" + cutter.getDescription());
-    jigsawParams.setCutter(cutter);
-  }
-
   private void fireBrowseAction() {
     JFileChooser chooser = new JFileChooser(getCurrentFolder());
     chooser.setFileFilter(new JigFileFilter());
@@ -194,10 +160,10 @@ public class SelectImageFrame extends JPanel implements ActionListener {
   public void actionPerformed(ActionEvent e) {
     if (e.getSource() == browseButton) {
       fireBrowseAction();
-    } else if (e.getSource() == cutterCBox) {
-      fireCutterChanged();
     } else if (e.getSource() == okButton) {
       jigsawParams.setRectangle(propertiesPanel.getImageSelection());
+      jigsawParams.setPieces(propertiesPanel.getPieceCount());
+      jigsawParams.setCutter(propertiesPanel.getSelectedCutter());
       firePropertyChange(JIGSAW_PARAMS, jigsawParams, new JigsawParam(jigsawParams));
     } else if (e.getSource() == jigsawResumePanel) {
       if (e.getID() == JigsawResumeItemPanel.LOAD_ACTION_ID) {

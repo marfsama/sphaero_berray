@@ -274,8 +274,8 @@ public class ImagePropertiesPanel extends JPanel {
     }
 
     // Getters for the new controls
-    public String getSelectedCutter() {
-        return (String)cutterComboBox.getSelectedItem();
+    public JigsawCutter getSelectedCutter() {
+        return (JigsawCutter) cutterComboBox.getSelectedItem();
     }
 
     public int getPieceCount() {
