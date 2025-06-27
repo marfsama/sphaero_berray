@@ -120,8 +120,10 @@ public class PiecesBin {
    * Push the top piece (at the front) to the bottom (the back).
    */
   public void push() {
-    Piece p = pieces.remove(pieces.size() - 1);
-    pieces.add(0, p);
+    if (pieces.size() > 1) {
+      Piece p = pieces.remove(pieces.size() - 1);
+      pieces.add(0, p);
+    }
   }
 
   public void movePieceTo(Piece piece, int x, int y) {

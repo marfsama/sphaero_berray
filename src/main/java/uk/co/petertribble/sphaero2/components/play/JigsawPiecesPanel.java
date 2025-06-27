@@ -2,15 +2,14 @@ package uk.co.petertribble.sphaero2.components.play;
 
 import com.berray.math.Rect;
 import uk.co.petertribble.sphaero2.model.Piece;
+import uk.co.petertribble.sphaero2.model.PieceSet;
 import uk.co.petertribble.sphaero2.model.PiecesBin;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 
 /**
  * Panel with pieces to display and solve. The pieces on this panel do not necessarily be all pieces of the jigsaw.
@@ -70,6 +69,9 @@ public class JigsawPiecesPanel extends JPanel {
   private int clearY0;
   private int clearX1;
   private int clearY1;
+
+  private Rectangle selectionRectangle;
+
   private Color clearColor;
 
   // If a keyboard command can affect a piece, it'll be this one.
@@ -79,6 +81,8 @@ public class JigsawPiecesPanel extends JPanel {
    * Bin with the pieces to display and edit.
    */
   private PiecesBin piecesBin;
+  /** Set of pieces which are selected at the moment. */
+  private PieceSet selection = new PieceSet();
 
 
   public JigsawPiecesPanel() {
@@ -87,10 +91,10 @@ public class JigsawPiecesPanel extends JPanel {
     setBackground(bgColors[bgColor]);
     setCursor(NORMAL_CURSOR);
     setClearColor();
-    addWiring();
+    addListeners();
   }
 
-  private void addWiring() {
+  private void addListeners() {
     addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
@@ -113,11 +117,6 @@ public class JigsawPiecesPanel extends JPanel {
       public void keyTyped(KeyEvent e) {
         keyTyped0(e);
       }
-
-      @Override
-      public void keyPressed(KeyEvent e) {
-        keyPressed0(e);
-      }
     });
   }
 
@@ -134,7 +133,7 @@ public class JigsawPiecesPanel extends JPanel {
    * randomize rotation.
    */
   public void shuffle() {
-    piecesBin.shuffle(new Rect(0,0, getWidth(), getHeight()));
+    piecesBin.shuffle(new Rect(0,0, getWidth()/scale, getHeight()/scale));
     repaint();
   }
 
@@ -157,22 +156,13 @@ public class JigsawPiecesPanel extends JPanel {
       return;
     }
 
-    Map<Integer, Piece> piecesMap = new HashMap<>();
-    piecesBin.getPieces().forEach(piece ->piecesMap.put(piece.getId(), piece));
+    // first draw the highlights of the selected pieces
+    for (Piece piece : selection) {
+      piece.drawHighlight(g);
+    }
 
     for (Piece piece : piecesBin.getPieces()) {
       piece.draw(g);
-    }
-    // draw lines from last piece to all its neighbors
-    if (piecesBin.getPieces().size() > 0) {
-      Piece lastPiece = piecesBin.getPieces().get(piecesBin.getPieces().size() - 1);
-      /*
-      for (Piece neighbour : lastPiece.getNeighbors()) {
-        g.setColor(Color.GREEN);
-        g.drawLine(lastPiece.getPuzzleX()+lastPiece.getCurrentWidth()/2, lastPiece.getPuzzleY()+lastPiece.getCurrentHeight()/2,
-            neighbour.getPuzzleX()+neighbour.getCurrentWidth()/2, neighbour.getPuzzleY()+neighbour.getCurrentHeight()/2);
-      }
-       */
     }
 
     if (lastClick != null) {
@@ -317,8 +307,7 @@ public class JigsawPiecesPanel extends JPanel {
       transY = jigsawY - focusPiece.getPuzzleY();
       // The focusPiece might have moved up in Z-order. At worst, we have
       // to repaint its bounding rectangle.
-      repaint(0, (int) (focusPiece.getPuzzleX() * scale), (int) (focusPiece.getPuzzleY() * scale),
-          (int) (focusPiece.getCurrentWidth() * scale), (int) (focusPiece.getCurrentHeight() * scale));
+      repaintRectangleScaled(focusPiece.getDrawBounds());
     }
   }
 
@@ -329,18 +318,20 @@ public class JigsawPiecesPanel extends JPanel {
     int jigsawX = (int) (e.getX() / scale);
     int jigsawY = (int) (e.getY() / scale);
 
-    int prevX = focusPiece.getPuzzleX();
-    int prevY = focusPiece.getPuzzleY();
-    int prevW = focusPiece.getCurrentWidth();
-    int prevH = focusPiece.getCurrentHeight();
+    Rectangle prev = focusPiece.getDrawBounds();
     focusPiece.moveTo(jigsawX - transX, jigsawY - transY);
     // Repaint the focusPiece' previous and current bounding rects.
-    repaint(0, (int) (prevX * scale), (int) (prevY * scale), (int) (prevW * scale) + 1, (int) (prevH * scale) + 1);
-    repaint(0L, (int) (focusPiece.getPuzzleX() * scale), (int) (focusPiece.getPuzzleY() * scale),
-        (int) (focusPiece.getCurrentWidth() * scale), (int) (focusPiece.getCurrentHeight() * scale));
+    repaintRectangleScaled(prev);
+    repaintRectangleScaled(focusPiece.getDrawBounds());
+  }
+
+  private void repaintRectangleScaled(Rectangle bound) {
+    repaint(0, (int) (bound.x * scale), (int) (bound.y * scale), (int) ((bound.width + 1) * scale), (int) ((bound.height + 1) * scale));
   }
 
   private void releasePiece() {
+    selection.clear();
+    repaint();
     if (focusPiece == null) {
       return;
     }
@@ -348,9 +339,12 @@ public class JigsawPiecesPanel extends JPanel {
     if (newPiece != null) {
       // Joined pieces may be of any size and number. Mouse release isn't
       // a terribly frequent event, so just repaint the whole thing.
-      repaint();
       focusPiece = newPiece;
       pieceJoined(focusPiece);
+    }
+    else {
+      // no piece joined. then add the current piece to the selected set
+      selection.add(focusPiece);
     }
   }
 
@@ -486,46 +480,42 @@ public class JigsawPiecesPanel extends JPanel {
 
   void keyTyped0(KeyEvent e) {
     char ch = Character.toUpperCase(e.getKeyChar());
-    if (ch == PREV_BG) {
-      prevBackground();
-    } else if (ch == NEXT_BG) {
-      nextBackground();
-    } else if (ch == SCALE_IN) {
-      updateScale(scale * 1.5f);
-    } else if (ch == SCALE_OUT) {
-      updateScale(scale / 1.5f);
+    switch (ch) {
+      case PREV_BG:
+        prevBackground();
+        break;
+      case NEXT_BG:
+        nextBackground();
+        break;
+      case SCALE_IN:
+        updateScale(scale * 1.5f);
+        break;
+      case SCALE_OUT:
+        updateScale(scale / 1.5f);
+        break;
+      case SHUFFLE:
+        shuffle();
+        break;
+      case CLEAR:
+        toggleClearMode();
+        break;
+      case ROTATE_LEFT:
+      case KeyEvent.VK_LEFT:
+        rotatePiece(270);
+        break;
+      case ROTATE_RIGHT:
+      case KeyEvent.VK_RIGHT:
+        rotatePiece(90);
+        break;
+      case PUSH:
+        push();
+        break;
     }
-    if (piecesBin == null) {
-      return;
     }
-    if (ch == ROTATE_LEFT) {
-      rotatePiece(270);
-    } else if (ch == ROTATE_RIGHT) {
-      rotatePiece(90);
-    } else if (ch == SHUFFLE) {
-      shuffle();
-    } else if (ch == PUSH) {
-      push();
-    } else if (ch == CLEAR) {
-      toggleClearMode();
-    }
-  }
 
   private void updateScale(float newScale) {
     scale = newScale;
-    revalidate();
-  }
-
-  void keyPressed0(KeyEvent e) {
-    if (piecesBin != null) {
-      if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_KP_LEFT) {
-        rotatePiece(270);
-      } else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyCode() == KeyEvent.VK_KP_RIGHT) {
-        rotatePiece(90);
-      } else if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_KP_DOWN) {
-        push();
-      }
-    }
+    repaint();
   }
 
   private void rotatePiece(int amount) {
@@ -534,21 +524,18 @@ public class JigsawPiecesPanel extends JPanel {
     }
     int newRotation = focusPiece.getRotation() + amount;
     newRotation %= 360;
-    int prevW = focusPiece.getCurrentWidth();
-    int prevH = focusPiece.getCurrentHeight();
-    int prevX = focusPiece.getPuzzleX();
-    int prevY = focusPiece.getPuzzleY();
+    Rectangle prev = focusPiece.getDrawBounds();
     focusPiece.setRotation(newRotation);
     // Make the piece appear to rotate about its center.
     // ### Feature: When the mouse is down, rotate about the cursor instead
     //   of the center.
     int currW = focusPiece.getCurrentWidth();
     int currH = focusPiece.getCurrentHeight();
-    int currX = prevX + (prevW - currW) / 2;
-    int currY = prevY + (prevH - currH) / 2;
+    int currX = prev.x + (prev.width - currW) / 2;
+    int currY = prev.y + (prev.height - currH) / 2;
     focusPiece.moveTo(currX, currY);
-    repaint(0, (int) (prevX * scale), (int) (prevY * scale), (int) (prevW * scale), (int) (prevH * scale));
-    repaint(0, (int) (currX * scale), (int) (currY * scale), (int) (currW * scale), (int) (currH * scale));
+    repaintRectangleScaled(prev);
+    repaintRectangleScaled(focusPiece.getDrawBounds());
   }
 
   private void prevBackground() {

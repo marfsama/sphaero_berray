@@ -189,9 +189,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
     this.jigsaw = jigsaw;
     inputManager.clear();
 
-    jigsaw.getPiecesBins().clear();
-    jigsaw.addBin("Edges");
-
     JLayeredPane layeredPane = getLayeredPane();
     Component[] palettes = layeredPane.getComponentsInLayer(JLayeredPane.PALETTE_LAYER);
     Arrays.stream(palettes).forEach(layeredPane::remove);
@@ -215,18 +212,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
     createStatusBar(oldJigsawPane);
     inputManager.addPiecesPanel(puzzle);
     setContentPane(oldJigsawPane);
-
-    for (PiecesBin piecesBin : jigsaw.getPiecesBins()) {
-      JigsawPiecesPanel binPiecesPanel = new JigsawPiecesPanel();
-      binPiecesPanel.setScale(0.25f);
-      binPiecesPanel.setPiecesBin(piecesBin);
-      InternalPanel binPanel = new InternalPanel(piecesBin.getName());
-      binPanel.setBounds(100, 100, 200, 200);
-      binPanel.setContentPane(binPiecesPanel);
-      layeredPane.add(binPanel, JLayeredPane.PALETTE_LAYER);
-
-      inputManager.addPiecesPanel(binPiecesPanel);
-    }
 
     pack();
 
