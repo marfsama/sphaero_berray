@@ -162,4 +162,12 @@ public class JigsawPanel extends JigsawPiecesPanel {
     }
     super.mouseReleased0(e);
   }
+
+  public void stack() {
+    if (jigsaw.isFinished()) {
+      return;
+    }
+
+    super.stack();
+  }
 }

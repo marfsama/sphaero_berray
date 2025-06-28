@@ -2,7 +2,7 @@ package uk.co.petertribble.sphaero2.model;
 
 import com.berray.math.Vec2;
 
-import java.util.Collection;
+import java.awt.*;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -48,15 +48,39 @@ public class PieceSet implements Iterable<Piece> {
     }
   }
 
+  public void moveBy(int deltaX, int deltaY) {
+    for (Piece piece : pieces) {
+      int x = piece.getPuzzleX() + deltaX;
+      int y = piece.getPuzzleY() + deltaY;
+      piece.moveTo(x, y);
+    }
+  }
+
+
   /**
    * Returns the anchor for the selected set. The anchor can be an arbitrary position. It is guaranteed to be stable (the same for 2 calls)
    * and when the whole set is @{link {@link #moveBy(Vec2)} (Vec2)} moved}, the anchor is moved by the same amount.
    */
   public Vec2 getAnchor() {
+    if (pieces.isEmpty()) {
+      return Vec2.origin();
+    }
     Piece anchorPiece = pieces.iterator().next();
     return new Vec2(anchorPiece.getPuzzleX(), anchorPiece.getPuzzleY());
-
   }
+
+  /**
+   * Returns the anchor for the selected set. The anchor can be an arbitrary position. It is guaranteed to be stable (the same for 2 calls)
+   * and when the whole set is @{link {@link #moveBy(Vec2)} (Vec2)} moved}, the anchor is moved by the same amount.
+   */
+  public Point getAnchorPoint() {
+    if (pieces.isEmpty()) {
+      return new Point();
+    }
+    Piece anchorPiece = pieces.iterator().next();
+    return new Point(anchorPiece.getPuzzleX(), anchorPiece.getPuzzleY());
+  }
+
 
   public Vec2 getCenter() {
     float x = 0;
@@ -73,6 +97,13 @@ public class PieceSet implements Iterable<Piece> {
       piece.moveTo((int) center.getX(), (int) center.getY());
     }
   }
+
+  public void stack(Point center) {
+    for (Piece piece : pieces) {
+      piece.moveTo(center.x - piece.getCurrentWidth() / 2, center.y - piece.getCurrentHeight() / 2);
+    }
+  }
+
 
   public void addAll(Iterable<Piece> others) {
     others.forEach(pieces::add);

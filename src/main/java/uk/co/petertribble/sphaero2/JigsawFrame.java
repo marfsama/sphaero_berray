@@ -79,6 +79,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private JLabel progressLabel;
   private TimeLabel tlabel;
   private InputManager inputManager = new InputManager();
+  private JigsawPanel puzzle;
 
   /**
    * Creates and displays a simple JFrame containing a jigsaw puzzle in a
@@ -206,10 +207,11 @@ public class JigsawFrame extends JFrame implements ActionListener {
     previewPanel.setContentPane(previewImagePanel);
     layeredPane.add(previewPanel, JLayeredPane.PALETTE_LAYER);
 
-    JigsawPanel puzzle = new JigsawPanel(jigsaw);
+    this.puzzle = new JigsawPanel(jigsaw);
     JPanel oldJigsawPane = new JPanel(new BorderLayout());
     oldJigsawPane.add(new JScrollPane(puzzle));
     createStatusBar(oldJigsawPane);
+    createToolBar(oldJigsawPane);
     inputManager.addPiecesPanel(puzzle);
     setContentPane(oldJigsawPane);
 
@@ -239,7 +241,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     puzzle.setProgressLabel(progressLabel);
   }
 
-  private void createStatusBar(JPanel ppanel) {
+  private void createStatusBar(JPanel panel) {
     JPanel statusbar = new JPanel();
     statusbar.setLayout(new FlowLayout(FlowLayout.RIGHT));
     this.tlabel = new TimeLabel();
@@ -251,9 +253,22 @@ public class JigsawFrame extends JFrame implements ActionListener {
     statusbar.add(Box.createHorizontalStrut(2));
     statusbar.add(save);
 
-
-    ppanel.add(statusbar, BorderLayout.SOUTH);
+    panel.add(statusbar, BorderLayout.SOUTH);
   }
+
+  private void createToolBar(JPanel panel) {
+    JToolBar toolbar = new JToolBar();
+
+    toolbar.add(new JToggleButton(new ToolbarAction("toggleSelection")));
+    toolbar.add(new JButton(new ToolbarAction("stack", () -> puzzle.stack())));
+    toolbar.add(new JButton(new ToolbarAction("disperse")));
+    toolbar.add(new JButton(new ToolbarAction("clear")));
+    toolbar.add(new JButton(new ToolbarAction("shuffle")));
+    toolbar.add(new JButton(new ToolbarAction("arrange")));
+
+    panel.add(toolbar, BorderLayout.NORTH);
+  }
+
 
   private void initSelectImagePrompt() {
     selectImageFrame.refresh();
@@ -324,6 +339,26 @@ public class JigsawFrame extends JFrame implements ActionListener {
     } else if (e.getSource() == aboutItem) {
       JOptionPane.showMessageDialog(this, JigUtil.aboutMsg(),
           "About Sphaero2", JOptionPane.PLAIN_MESSAGE);
+    }
+  }
+
+  private static class ToolbarAction extends AbstractAction {
+    private Runnable actionMethod;
+
+    public ToolbarAction(String name) {
+      super(name);
+    }
+
+    public ToolbarAction(String name, Runnable actionMethod) {
+      super(name);
+      this.actionMethod = actionMethod;
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+      if (actionMethod != null) {
+        actionMethod.run();
+      }
     }
   }
 

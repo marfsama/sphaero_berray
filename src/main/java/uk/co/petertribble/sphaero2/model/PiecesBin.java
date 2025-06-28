@@ -2,7 +2,9 @@ package uk.co.petertribble.sphaero2.model;
 
 import com.berray.math.Rect;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -61,6 +63,22 @@ public class PiecesBin {
     }
     return piecesInRect;
   }
+
+  public PieceSet getPiecesInRect(Rectangle localRect) {
+    PieceSet piecesInRect = new PieceSet();
+
+    for (Piece piece : pieces) {
+      if (localRect.contains(piece.getPuzzleX(), piece.getPuzzleY()) &&
+              localRect.contains(piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY()) &&
+              localRect.contains(piece.getPuzzleX(), piece.getPuzzleY() + piece.getCurrentHeight()) &&
+              localRect.contains(piece.getPuzzleX() + piece.getCurrentWidth(), piece.getPuzzleY() + piece.getCurrentHeight())
+      ) {
+        piecesInRect.add(piece);
+      }
+    }
+    return piecesInRect;
+  }
+
 
 
   public String getName() {
