@@ -35,7 +35,7 @@ import static java.nio.file.StandardOpenOption.READ;
 /**
  * Panel to select the image to cut together with some configurations.
  */
-public class SelectImageFrame extends JPanel implements ActionListener {
+public class SelectImagePanel extends JPanel implements ActionListener {
   // for the interactive prompt
   private static final Color HELP_COLOR = new Color(100, 100, 150);
   private static final int DEFAULT_PIECES = JigsawCutter.DEFAULT_PIECES;
@@ -49,12 +49,25 @@ public class SelectImageFrame extends JPanel implements ActionListener {
   private JButton okButton;
   private JigsawResumeListPanel jigsawResumePanel;
   private ImagePropertiesPanel propertiesPanel;
+  private ActionListener startListener;
 
-  public SelectImageFrame() {
+  public SelectImagePanel() {
     this.jigsawParams = new JigsawParam();
     jigsawParams.setCutter(JigsawCutter.cutters[0]);
     jigsawParams.setPieces(DEFAULT_PIECES);
     initComponents();
+  }
+
+  public void setStartListener(ActionListener startListener) {
+    this.startListener = startListener;
+  }
+
+  public JigsawParam getJigsawParams() {
+    return jigsawParams;
+  }
+
+  public void setJigsawParams(JigsawParam jigsawParams) {
+    this.jigsawParams = jigsawParams;
   }
 
   private void initComponents() {
@@ -82,8 +95,8 @@ public class SelectImageFrame extends JPanel implements ActionListener {
     okPanel.add(Box.createHorizontalGlue());
     okButton = new JButton("Start Puzzling");
     okButton.setMnemonic(KeyEvent.VK_K);
-    okPanel.add(okButton);
     okButton.addActionListener(this);
+    okPanel.add(okButton);
 
     JPanel resumePane = new JPanel();
     resumePane.setLayout(new BorderLayout());
@@ -164,7 +177,9 @@ public class SelectImageFrame extends JPanel implements ActionListener {
       jigsawParams.setRectangle(propertiesPanel.getImageSelection());
       jigsawParams.setPieces(propertiesPanel.getPieceCount());
       jigsawParams.setCutter(propertiesPanel.getSelectedCutter());
-      firePropertyChange(JIGSAW_PARAMS, jigsawParams, new JigsawParam(jigsawParams));
+      if (startListener != null) {
+        startListener.actionPerformed(new ActionEvent(this, 1, "start"));
+      }
     } else if (e.getSource() == jigsawResumePanel) {
       if (e.getID() == JigsawResumeItemPanel.LOAD_ACTION_ID) {
         loadSavedState(Path.of(e.getActionCommand()));
@@ -285,7 +300,7 @@ public class SelectImageFrame extends JPanel implements ActionListener {
         List<Piece> finalPieces = new ArrayList<>(pieces.values());
         Jigsaw jigsaw = new Jigsaw(params, originalImage);
         jigsaw.getPieces().setPieces(finalPieces);
-        SelectImageFrame.this.firePropertyChange(JIGSAW, null, jigsaw);
+        SelectImagePanel.this.firePropertyChange(JIGSAW, null, jigsaw);
       }
     } catch (IOException e) {
       e.printStackTrace();

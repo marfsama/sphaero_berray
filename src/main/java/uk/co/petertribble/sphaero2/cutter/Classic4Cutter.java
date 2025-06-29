@@ -53,6 +53,8 @@ public class Classic4Cutter extends JigsawCutter {
 
     startProgress(rows * columns);
 
+    //System.out.println("");
+
     // Make a matrix of points representing the corners of the pieces.
     // Each point is based on a grid of equal rectangles, and can then
     // drift by up to 1/20th the height or width of an average piece.

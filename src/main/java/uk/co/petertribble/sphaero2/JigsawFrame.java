@@ -2,7 +2,7 @@ package uk.co.petertribble.sphaero2;
 
 import uk.co.petertribble.sphaero2.components.*;
 import uk.co.petertribble.sphaero2.components.play.*;
-import uk.co.petertribble.sphaero2.components.select.SelectImageFrame;
+import uk.co.petertribble.sphaero2.components.select.SelectImagePanel;
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.*;
 
@@ -74,7 +74,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
   private int pHeight = 480;
   private int pWidth = 640;
-  private SelectImageFrame selectImageFrame;
+  private SelectImagePanel selectImageFrame;
   private JButton save;
   private JLabel progressLabel;
   private TimeLabel tlabel;
@@ -141,12 +141,12 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private void initFrameWork() {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-    this.selectImageFrame = new SelectImageFrame();
+    this.selectImageFrame = new SelectImagePanel();
     selectImageFrame.addPropertyChangeListener(event -> {
-      if (SelectImageFrame.JIGSAW_PARAMS.equals(event.getPropertyName())) {
+      if (SelectImagePanel.JIGSAW_PARAMS.equals(event.getPropertyName())) {
         JigsawParam params = (JigsawParam) event.getNewValue();
         setupPuzzle(params);
-      } else if (SelectImageFrame.JIGSAW.equals(event.getPropertyName())) {
+      } else if (SelectImagePanel.JIGSAW.equals(event.getPropertyName())) {
         Jigsaw jigsaw = (Jigsaw) event.getNewValue();
         init(jigsaw, false);
       }
