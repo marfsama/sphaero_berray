@@ -159,6 +159,7 @@ public class MultiPiece extends Piece {
     int dx = newPiece.getRotatedX() - main.getRotatedX();
     int dy = newPiece.getRotatedY() - main.getRotatedY();
     newPiece.setPuzzlePosition(mainPX + dx, mainPY + dy);
+    newPiece.setCurrentPosition(mainPX + dx, mainPY + dy);
 
     // Add each piece as a neighbor, and change each piece's neighbors
     //  (remove main and others, and add newPiece)

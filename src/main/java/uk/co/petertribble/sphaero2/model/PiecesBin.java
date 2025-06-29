@@ -36,9 +36,9 @@ public class PiecesBin {
   }
 
   public PiecesBin(AtomicInteger idProvider, String name, List<Piece> pieces) {
-    this.pieces = Objects.requireNonNull(pieces);
     this.name = name;
     this.idProvider = idProvider;
+    this.setPieces(pieces);
   }
 
   public List<Piece> getPieces() {
@@ -90,7 +90,8 @@ public class PiecesBin {
   }
 
   public void setPieces(List<Piece> pieces) {
-    this.pieces = pieces;
+    // create a copy of the pieces list so we can be sure that the list is modifiable
+    this.pieces = new ArrayList<>(Objects.requireNonNull(pieces));
     // find last piece id and set idProvider to the next id
     int maxId = pieces.stream().mapToInt(Piece::getId).max().orElse(0);
     idProvider.set(maxId);

@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.MemoryImageSource;
 import java.awt.image.PixelGrabber;
@@ -91,7 +92,8 @@ public class JigsawPanel extends JigsawPiecesPanel {
     int curH = getHeight();
     final int centerX = (curW - width) / 2;
     final int centerY = (curH - height) / 2;
-    lastPiece.moveTo(centerX, centerY);
+    lastPiece.setPuzzlePosition(centerX, centerY);
+    lastPiece.setCurrentPosition(centerX, centerY);
     repaint(0, prevX, prevY, width, height);
     repaint(0, centerX, centerY, width, height);
 
@@ -161,6 +163,14 @@ public class JigsawPanel extends JigsawPiecesPanel {
       return;
     }
     super.mouseReleased0(e);
+  }
+
+  @Override
+  protected void keyTyped0(KeyEvent e) {
+    if (jigsaw.isFinished()) {
+      return;
+    }
+    super.keyTyped0(e);
   }
 
   public void stack() {

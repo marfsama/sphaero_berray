@@ -88,6 +88,10 @@ public class Piece {
   // degrees clockwise, etc.
   private int rotation;
 
+  // Current position (for animation)
+  private int currentX;
+  private int currentY;
+
   /**
    * Creates a new Piece.  No initial rotation is done.  (This is needed
    * by MultiPiece, which needs to set its subpieces before rotating.)
@@ -109,6 +113,12 @@ public class Piece {
     this.origData = data;
     this.imageX = imageX;
     this.imageY = imageY;
+
+    this.puzzleX = imageX;
+    this.puzzleY = imageY;
+    this.currentX = imageX;
+    this.currentY = imageY;
+
     this.curWidth = this.origWidth = imageWidth;
     this.curHeight = this.origHeight = imageHeight;
     this.totalWidth = totalWidth;
@@ -344,6 +354,19 @@ public class Piece {
     return new Rectangle(puzzleX - highlightSize, puzzleY - highlightSize, curWidth + highlightSize * 2, curHeight + highlightSize * 2);
   }
 
+  public int getCurrentX() {
+    return currentX;
+  }
+
+  public int getCurrentY() {
+    return currentY;
+  }
+
+  public void setCurrentPosition(int x, int y) {
+    this.currentX = x;
+    this.currentY = y;
+  }
+
   /**
    * Returns this Piece's current image.  This will be the Piece's portion
    * of the original image, rotated by this Piece's current rotation.
@@ -415,7 +438,7 @@ public class Piece {
    * @param g the Graphics object to draw to
    */
   public void draw(Graphics g) {
-    draw(g, getPuzzleX(), getPuzzleY());
+    draw(g, currentX, currentY);
   }
 
   /**
@@ -437,7 +460,7 @@ public class Piece {
    * @param g the Graphics object to draw to
    */
   public void drawHighlight(Graphics g) {
-    drawHighlight(g, getPuzzleX(), getPuzzleY());
+    drawHighlight(g, getCurrentX(), getCurrentY());
   }
 
   /**

@@ -237,6 +237,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     manuBar.add(jmh);
     repaint();
     tlabel.start();
+    puzzle.requestFocus();
     puzzle.setTimeLabel(tlabel);
     puzzle.setProgressLabel(progressLabel);
   }

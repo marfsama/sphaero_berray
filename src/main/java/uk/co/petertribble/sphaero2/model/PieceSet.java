@@ -49,10 +49,17 @@ public class PieceSet implements Iterable<Piece> {
   }
 
   public void moveBy(int deltaX, int deltaY) {
+    moveBy(deltaX, deltaY, false);
+  }
+
+  public void moveBy(int deltaX, int deltaY, boolean setCurrentPosition) {
     for (Piece piece : pieces) {
       int x = piece.getPuzzleX() + deltaX;
       int y = piece.getPuzzleY() + deltaY;
       piece.moveTo(x, y);
+      if (setCurrentPosition) {
+        piece.setCurrentPosition(x, y);
+      }
     }
   }
 

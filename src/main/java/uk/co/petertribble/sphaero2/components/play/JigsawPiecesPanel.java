@@ -6,10 +6,11 @@ import uk.co.petertribble.sphaero2.model.PieceSet;
 import uk.co.petertribble.sphaero2.model.PiecesBin;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.*;
 import java.util.List;
-import java.util.ListIterator;
 
 /**
  * Panel with pieces to display and solve. The pieces on this panel do not necessarily be all pieces of the jigsaw.
@@ -85,6 +86,10 @@ public class JigsawPiecesPanel extends JPanel {
   /** Pieces in the selection rectangle when is was drawn. */
   private PieceSet piecesInSelectionRectangle;
 
+  private final List<Piece> animatingPieces = new ArrayList<>();
+  private final Map<Piece, AnimationData> animationDataMap = new HashMap<>();
+  private final Timer animationTimer;
+
 
   public JigsawPiecesPanel() {
     setOpaque(true);
@@ -93,6 +98,47 @@ public class JigsawPiecesPanel extends JPanel {
     setCursor(NORMAL_CURSOR);
     setClearColor();
     addListeners();
+    animationTimer = new Timer(16, this::timerAction);
+  }
+
+  private float easeOut(float t) {
+    return 1 - (1 - t) * (1 - t);
+  }
+
+  public void animatePieceTo(Piece piece, int endX, int endY, int durationMs) {
+    // If already animating, remove from current animation
+    if (animatingPieces.contains(piece)) {
+      animatingPieces.remove(piece);
+      animationDataMap.remove(piece);
+    }
+
+    // Set up new animation
+    AnimationData data = new AnimationData(
+            piece.getCurrentX(),
+            piece.getCurrentY(),
+            endX,
+            endY,
+            durationMs
+    );
+
+    // Update final puzzle position
+    piece.setPuzzlePosition(endX, endY);
+
+    animatingPieces.add(piece);
+    animationDataMap.put(piece, data);
+
+    if (!animationTimer.isRunning()) {
+      animationTimer.start();
+    }
+  }
+
+  public void animateAllToPuzzlePositions(int durationMs) {
+    for (Piece piece : piecesBin.getPieces()) {
+      if (piece.getCurrentX() != piece.getPuzzleX() ||
+              piece.getCurrentY() != piece.getPuzzleY()) {
+        animatePieceTo(piece, piece.getPuzzleX(), piece.getPuzzleY(), durationMs);
+      }
+    }
   }
 
   private void addListeners() {
@@ -123,6 +169,7 @@ public class JigsawPiecesPanel extends JPanel {
 
   public void setPiecesBin(PiecesBin piecesBin) {
     this.piecesBin = piecesBin;
+    animateAllToPuzzlePositions(500);
   }
 
   public PiecesBin getPiecesBin() {
@@ -135,6 +182,7 @@ public class JigsawPiecesPanel extends JPanel {
    */
   public void shuffle() {
     piecesBin.shuffle(new Rect(0,0, getWidth()/scale, getHeight()/scale));
+    animateAllToPuzzlePositions(500);
     repaint();
   }
 
@@ -323,7 +371,12 @@ public class JigsawPiecesPanel extends JPanel {
       if (piece.contains(jigsawX, jigsawY)) {
         focusPiece = piece;
         // remove piece from whichever position it is currently
-        iter.remove();
+        try {
+          iter.remove();
+        } catch (UnsupportedOperationException e2) {
+          System.out.println(piece.getClass());
+          e2.printStackTrace();
+        }
       }
     }
     // if the user clicked a piece
@@ -349,6 +402,7 @@ public class JigsawPiecesPanel extends JPanel {
 
     Rectangle prev = focusPiece.getDrawBounds();
     focusPiece.moveTo(jigsawX - transX, jigsawY - transY);
+    focusPiece.setCurrentPosition(jigsawX - transX, jigsawY - transY);
     // Repaint the focusPiece' previous and current bounding rects.
     repaintRectangleScaled(prev);
     repaintRectangleScaled(focusPiece.getDrawBounds());
@@ -425,7 +479,7 @@ public class JigsawPiecesPanel extends JPanel {
     selectionRectangle.x += deltaX;
     selectionRectangle.y += deltaY;
     // ...  and pieces
-    piecesInSelectionRectangle.moveBy(deltaX, deltaY);
+    piecesInSelectionRectangle.moveBy(deltaX, deltaY, true);
 
     // repaint new selection rectangle
     repaintRectangleScaled(selectionRectangle);
@@ -649,6 +703,65 @@ public class JigsawPiecesPanel extends JPanel {
     int centerY = selectionRectangle.y + selectionRectangle.height / 2;
     PieceSet selected = piecesBin.getPiecesInRect(selectionRectangle);
     selected.stack(new Point(centerX, centerY));
+    animateAllToPuzzlePositions(500);
     repaint();
+  }
+
+  private void timerAction(ActionEvent e) { // ~60fps
+    long currentTime = System.currentTimeMillis();
+    boolean needsRepaint = false;
+    boolean anyAnimationsRunning = false;
+
+    // Process all animating pieces
+    Iterator<Piece> iterator = animatingPieces.iterator();
+    while (iterator.hasNext()) {
+      Piece piece = iterator.next();
+      AnimationData data = animationDataMap.get(piece);
+
+      long elapsed = currentTime - data.startTime;
+      float progress = Math.min(1f, (float) elapsed / data.duration);
+
+      // Apply easing function (quadratic ease-out)
+      progress = easeOut(progress);
+
+      // Calculate current position
+      int currentX = (int) (data.startX + (data.endX - data.startX) * progress);
+      int currentY = (int) (data.startY + (data.endY - data.startY) * progress);
+      piece.setCurrentPosition(currentX, currentY);
+
+      needsRepaint = true;
+
+      if (progress >= 1f) {
+        // Animation complete
+        iterator.remove();
+        animationDataMap.remove(piece);
+      } else {
+        anyAnimationsRunning = true;
+      }
+    }
+
+    if (needsRepaint) {
+      repaint();
+    }
+
+    if (!anyAnimationsRunning) {
+      animationTimer.stop();
+    }
+  }
+
+  private static class AnimationData {
+    final int startX, startY;
+    final int endX, endY;
+    final long startTime;
+    final long duration;
+
+    AnimationData(int startX, int startY, int endX, int endY, long duration) {
+      this.startX = startX;
+      this.startY = startY;
+      this.endX = endX;
+      this.endY = endY;
+      this.duration = duration;
+      this.startTime = System.currentTimeMillis();
+    }
   }
 }

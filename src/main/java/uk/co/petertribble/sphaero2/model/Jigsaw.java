@@ -91,7 +91,7 @@ public class Jigsaw {
   }
 
   public void reset() {
-    reset(true, image.getWidth(), image.getHeight());
+    reset(false, image.getWidth(), image.getHeight());
   }
 
   public void reset(boolean shuffle, int width, int height) {
