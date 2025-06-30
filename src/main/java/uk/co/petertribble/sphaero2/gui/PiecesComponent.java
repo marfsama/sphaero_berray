@@ -158,11 +158,11 @@ public class PiecesComponent extends Component {
         if (selectionRectangle != null) {
           // shuffle only pieces in selection rectangle (and move them just in the rectangle around)
           Vec2 pos = selectionRectangle.getPos();
-          pieces.shuffle(new Rect(pos.getX(), pos.getY(), selectionRectangle.getWidth(), selectionRectangle.getHeight()));
+          pieces.shuffle(new Rect(pos.getX(), pos.getY(), selectionRectangle.getWidth(), selectionRectangle.getHeight()), false);
         } else {
           // shuffle all pieces currently on screen
           Vec2 pos = gameObject.get("pos");
-          pieces.shuffle(new Rect(-pos.getX(), -pos.getY(), (game.width() / scale.getX()), (game.height() / scale.getY())));
+          pieces.shuffle(new Rect(-pos.getX(), -pos.getY(), (game.width() / scale.getX()), (game.height() / scale.getY())), false);
         }
       }
       break;

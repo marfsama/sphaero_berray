@@ -4,9 +4,7 @@ import com.berray.math.Rect;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -81,7 +79,7 @@ public class Jigsaw {
   }
 
   public void shuffle(int width, int height) {
-    pieces.shuffle(new Rect(0, 0, width, height));
+    pieces.shuffle(new Rect(0, 0, width, height), true);
 
     finished = false;
     if (finishedImage != null) {

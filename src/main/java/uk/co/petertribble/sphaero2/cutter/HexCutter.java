@@ -58,7 +58,6 @@ public class HexCutter extends JigsawCutter {
     } while ( p > prefPieces);
     size = s;
 
-    startProgress(rows * columns);
 
     List<List<Point>> points = createPoints(size, width, height);
     Map<EdgeKey, Edge> edges = createEdges(points);
@@ -67,6 +66,7 @@ public class HexCutter extends JigsawCutter {
     updateHexNeighbours(hexGrid);
     Map<Integer, Hex> hexMap = toMap(hexGrid);
     // cut pieces
+    startProgress("cutting", rows * columns);
     Map<Integer, Piece> pieces = cutPieces(image, hexMap, edges, width, height);
 
     updatePieceNeighbours(pieces, hexMap);
@@ -112,6 +112,8 @@ public class HexCutter extends JigsawCutter {
 
       Piece piece = makePiece(image, hex, path, width, height);
       pieces.put(piece.getId(), piece);
+      updateProgress();
+      statusListener.ejectPiece(piece);
     }
 
     return pieces;

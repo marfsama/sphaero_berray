@@ -97,26 +97,102 @@ public class PiecesBin {
     idProvider.set(maxId);
   }
 
-  public void clear(Rect destination, Rect rectangleToKeepFree) {
-    List<Piece> piecesToShuffle = new ArrayList<>();
-    List<Piece> remainingPieces = new ArrayList<>();
-    Random random = new Random();
+  /** moves all pieces out of the specified rectangle. */
+  public void clear(Rectangle rectangleToKeepFree) {
     for (Piece piece : this.pieces) {
-      if (destination.contains(piece.getPuzzleX(), piece.getPuzzleY())) {
-        piece.setPuzzlePosition(
-            (int) (destination.getX() + random.nextInt((int) (destination.getWidth() - piece.getCurrentWidth()))),
-            (int) (destination.getY() + random.nextInt((int) (destination.getHeight() - piece.getCurrentHeight()))));
-        piecesToShuffle.add(piece);
-      } else {
-        remainingPieces.add(piece);
+
+      Rectangle pieceBounds = piece.getBounds();
+      if (rectangleToKeepFree.intersects(pieceBounds)) {
+        // Get centers
+        Point freeCenter = new Point(
+                rectangleToKeepFree.x + rectangleToKeepFree.width / 2,
+                rectangleToKeepFree.y + rectangleToKeepFree.height / 2);
+        Point pieceCenter = new Point(
+                pieceBounds.x + pieceBounds.width / 2,
+                pieceBounds.y + pieceBounds.height / 2);
+
+        // Calculate direction vector from free area to piece
+        int dx = pieceCenter.x - freeCenter.x;
+        int dy = pieceCenter.y - freeCenter.y;
+
+        // Calculate intersection with rectangleToKeepFree boundaries
+
+        // left
+        double tx1 = (rectangleToKeepFree.getMinX() - pieceBounds.getMaxX()) / dx;
+        // right
+        double tx2 = (rectangleToKeepFree.getMaxX() - pieceBounds.getMinX()) / dx;
+        // top
+        double ty1 = (rectangleToKeepFree.getMinY() - pieceBounds.getMaxY()) / dy;
+        // bottom
+        double ty2 = (rectangleToKeepFree.getMaxY() - pieceBounds.getMinY()) / dy;
+
+        // Find the minimal positive t (intersection point)
+        double t = Double.POSITIVE_INFINITY;
+        if (tx1 > 0) t = Math.min(t, tx1);
+        if (tx2 > 0) t = Math.min(t, tx2);
+        if (ty1 > 0) t = Math.min(t, ty1);
+        if (ty2 > 0) t = Math.min(t, ty2);
+
+        // Calculate new position (adding small epsilon to ensure no intersection)
+        double epsilon = 0.1;
+        double newX = pieceCenter.getX() + dx * (t + epsilon);
+        double newY = pieceCenter.getY() + dy * (t + epsilon);
+
+        // Move piece by the difference between new and current center
+        int deltaX = (int)(newX - pieceCenter.getX());
+        int deltaY = (int)(newY - pieceCenter.getY());
+
+        piece.setPuzzlePosition(pieceBounds.x + deltaX, pieceBounds.y + deltaY);
       }
     }
-    Collections.shuffle(piecesToShuffle);
-    remainingPieces.addAll(piecesToShuffle);
-    this.pieces = remainingPieces;
   }
 
-  public void shuffle(Rect destination) {
+  public void arrange2(Rectangle rectangleToArrange) {
+    Iterable<Piece> piecesInRect = getPiecesInRect(rectangleToArrange);
+    List<Piece> piecesList = new ArrayList<>();
+    piecesInRect.forEach(piecesList::add);
+
+    if (piecesList.isEmpty()) return;
+
+    // Calculate total area and average piece size
+    int maxPieceWidth = 0;
+    int maxPieceHeight = 0;
+
+    for (Piece piece : piecesList) {
+      Rectangle bounds = piece.getBounds();
+      maxPieceWidth = Math.max(maxPieceWidth, bounds.width);
+      maxPieceHeight = Math.max(maxPieceHeight, bounds.height);
+    }
+
+    // Calculate grid dimensions that could theoretically fit all pieces
+    int cols = (int) Math.max(1, Math.floor(rectangleToArrange.getWidth() / maxPieceWidth));
+    int rows = (int) Math.ceil((double) piecesList.size() / cols);
+
+    // Calculate actual cell dimensions (may cause overlaps if space is too small)
+    int cellWidth = rectangleToArrange.width / cols;
+    int cellHeight = rectangleToArrange.height / rows;
+
+    // Arrange pieces in grid
+    int index = 0;
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (index >= piecesList.size()) break;
+
+        Piece piece = piecesList.get(index++);
+        Rectangle bounds = piece.getBounds();
+
+        // Calculate position (centered in cell)
+        int x = rectangleToArrange.x + c * cellWidth +
+                (cellWidth - bounds.width) / 2;
+        int y = rectangleToArrange.y + r * cellHeight +
+                (cellHeight - bounds.height) / 2;
+
+        piece.setPuzzlePosition(x, y);
+      }
+    }
+  }
+
+  public void shuffle(Rect destination, boolean randomizeRotation) {
     List<Piece> piecesToShuffle = new ArrayList<>();
     List<Piece> remainingPieces = new ArrayList<>();
     Random random = new Random();
@@ -125,6 +201,9 @@ public class PiecesBin {
         int x = (int) (destination.getX() + random.nextFloat() * (destination.getWidth() - piece.getCurrentWidth()));
         int y = (int) (destination.getY() + random.nextFloat() * (destination.getHeight() - piece.getCurrentHeight()));
         piece.setPuzzlePosition(x, y);
+        if (randomizeRotation) {
+          piece.setRotation(random.nextInt(3) * 90);
+        }
         piecesToShuffle.add(piece);
       } else {
         remainingPieces.add(piece);

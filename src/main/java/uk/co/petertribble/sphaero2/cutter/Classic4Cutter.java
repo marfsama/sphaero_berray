@@ -51,7 +51,7 @@ public class Classic4Cutter extends JigsawCutter {
     int rows = (int) Math.round(Math.sqrt(prefPieces * height / width));
     int columns = Math.round(prefPieces / rows);
 
-    startProgress(rows * columns);
+    startProgress("preparing", 0);
 
     //System.out.println("");
 
@@ -80,6 +80,7 @@ public class Classic4Cutter extends JigsawCutter {
       }
     }
 
+    startProgress("creating knobs", 0);
     // Make a knob for each edge.  Two matrices, one for vertical edges,
     // one for horizontal.  Remember to alternate knob directions.
     // boolean flip1 = true;
@@ -120,6 +121,7 @@ public class Classic4Cutter extends JigsawCutter {
       // flip1 = !flip1;
     }
 
+    startProgress("cutting", rows * columns);
     // Create the pieces.
     Piece[][] pieces = new Piece[columns][rows];
     int pieceNum = 0;
@@ -137,6 +139,7 @@ public class Classic4Cutter extends JigsawCutter {
             knobN, knobE, knobS, knobW,
             width, height);
         updateProgress();
+        statusListener.ejectPiece(pieces[i][j]);
       }
     }
 
@@ -207,7 +210,7 @@ public class Classic4Cutter extends JigsawCutter {
     int minY = box.y;
     mask(data, path, minX, minY, width, height);
 
-    int rotation = ((int) (Math.random() * 4)) * 90;
+    int rotation = 0; //((int) (Math.random() * 4)) * 90;
 
     return new Piece(pieceNum, data, minX, minY, width, height,
         tWidth, tHeight, rotation);

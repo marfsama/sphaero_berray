@@ -60,8 +60,6 @@ public class JigsawPiecesPanel extends JPanel {
       NORMAL_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR),
       CLEAR_CURSOR = new Cursor(Cursor.CROSSHAIR_CURSOR);
 
-  private static final Rectangle emptyRect = new Rectangle(0, 0, 0, 0);
-
   private Dimension prefSize;
   // Translation from a piece's upper-left corner to the point you clicked
   // on.
@@ -98,14 +96,14 @@ public class JigsawPiecesPanel extends JPanel {
     setCursor(NORMAL_CURSOR);
     setClearColor();
     addListeners();
-    animationTimer = new Timer(16, this::timerAction);
+    animationTimer = new Timer(10, this::timerAction);
   }
 
   private float easeOut(float t) {
     return 1 - (1 - t) * (1 - t);
   }
 
-  public void animatePieceTo(Piece piece, int endX, int endY, int durationMs) {
+  private void animatePieceTo(Piece piece, int endX, int endY, int durationMs) {
     // If already animating, remove from current animation
     if (animatingPieces.contains(piece)) {
       animatingPieces.remove(piece);
@@ -133,6 +131,9 @@ public class JigsawPiecesPanel extends JPanel {
   }
 
   public void animateAllToPuzzlePositions(int durationMs) {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      throw new IllegalStateException("method can only be called from the EDT");
+    }
     for (Piece piece : piecesBin.getPieces()) {
       if (piece.getCurrentX() != piece.getPuzzleX() ||
               piece.getCurrentY() != piece.getPuzzleY()) {
@@ -169,7 +170,6 @@ public class JigsawPiecesPanel extends JPanel {
 
   public void setPiecesBin(PiecesBin piecesBin) {
     this.piecesBin = piecesBin;
-    animateAllToPuzzlePositions(500);
   }
 
   public PiecesBin getPiecesBin() {
@@ -181,10 +181,47 @@ public class JigsawPiecesPanel extends JPanel {
    * randomize rotation.
    */
   public void shuffle() {
-    piecesBin.shuffle(new Rect(0,0, getWidth()/scale, getHeight()/scale));
+    shuffle((int) (getWidth() / scale), (int) (getHeight() / scale));
+  }
+
+  public void shuffle(int width, int height) {
+    shuffle(0, 0, width, height, false);
+  }
+
+  public void shuffleSelection() {
+    if (selectionRectangle != null) {
+      shuffle(selectionRectangle.x, selectionRectangle.y, selectionRectangle.width, selectionRectangle.height, false);
+    }
+  }
+
+  public void shuffle(int x, int y, int width, int height, boolean randomizeRotation) {
+    piecesBin.shuffle(new Rect(x, y, width, height), randomizeRotation);
     animateAllToPuzzlePositions(500);
     repaint();
   }
+
+  public void clearSelection() {
+    if (selectionRectangle != null) {
+      clear(selectionRectangle);
+    }
+  }
+
+  public void clear(Rectangle rectangleToClear) {
+    piecesBin.clear(rectangleToClear);
+    animateAllToPuzzlePositions(500);
+    repaint();
+  }
+
+  public void arrange() {
+    if (selectionRectangle != null) {
+      piecesBin.arrange2(selectionRectangle);
+      animateAllToPuzzlePositions(500);
+      repaint();
+    }
+
+  }
+
+
 
   /**
    * Push the top piece (at the front) to the bottom (the back).
@@ -334,12 +371,18 @@ public class JigsawPiecesPanel extends JPanel {
     if (piecesBin == null) {
       return;
     }
-    dragMode = DragMode.NONE;
-    if (selectionRectangle != null) {
+    if (dragMode == DragMode.DRAG_SELECTION_RECTANGLE) {
       finishSelectionRect(e);
-    } else {
+    } else if (dragMode == DragMode.MOVE_SELECTION_RECTANGLE){
+      // remove selection rectangle if it was not dragged
+      if (dragStart.equals(e.getPoint())) {
+        repaintRectangleScaled(selectionRectangle);
+        selectionRectangle = null;
+      }
+    } else if (dragMode == DragMode.PIECES){
       releasePiece();
     }
+    dragMode = DragMode.NONE;
   }
 
   public Piece getPieceAt(Point p) {
@@ -520,74 +563,6 @@ public class JigsawPiecesPanel extends JPanel {
     return r.intersects(rp);
   }
 
-
-  /**
-   * Shuffle piece randomly, but keeping it out of the rectangle defined
-   * by the given points.
-   * (x1,y1) guaranteed to be SE of (x0,y0)
-   */
-  private void shuffle(Piece piece, int x0, int y0, int x1, int y1) {
-    // Make the rectangle denoting where the Piece could be placed in the
-    // whole panel.  Top point will be (0,0).
-    int w = getWidth() - piece.getCurrentWidth();
-    int h = getHeight() - piece.getCurrentHeight();
-    // If w or h is negative, the piece is too big to be shuffled, so quit.
-    if (w < 0 || h < 0) {
-      return;
-    }
-
-    // Define the endpoints of the rectangle the Piece must avoid.
-    int ax = Math.max(0, x0 - piece.getCurrentWidth());
-    int ay = Math.max(0, y0 - piece.getCurrentHeight());
-    // int aw = x1 - ax;
-    int ah = y1 - ay;
-
-    // Now define four rectangles forming the shape where the NW piece
-    // corner could go.  I'll use BorderLayout rectangles as a guide.
-
-    // FIXME we could calculate the areas directly and only create
-    // the one rectangle we need for the shuffle call, or even not
-    // create any rectangles as we only need the height and width
-    Rectangle north = (ay == 0) ? emptyRect :
-        new Rectangle(0, 0, w, ay);
-    Rectangle south = (y1 >= h) ? emptyRect :
-        new Rectangle(0, y1 + 1, w, h - y1);
-    Rectangle west = (ax == 0 || ah == 0) ? emptyRect :
-        new Rectangle(0, ay, ax, ah);
-    Rectangle east = (x1 >= w || ah == 0) ? emptyRect :
-        new Rectangle(x1, ay, w - x1, ah);
-
-    int nArea = north.width * north.height;
-    int sArea = south.width * south.height;
-    int wArea = west.width * west.height;
-    int eArea = east.width * east.height;
-    int totalArea = nArea + sArea + wArea + eArea;
-
-    int rand = (int) (Math.random() * totalArea);
-
-    rand -= nArea;
-    if (rand < 0) {
-      shuffle(piece, north);
-      return;
-    }
-    rand -= sArea;
-    if (rand < 0) {
-      shuffle(piece, south);
-      return;
-    }
-    rand -= wArea;
-    if (rand < 0) {
-      shuffle(piece, west);
-      return;
-    }
-    shuffle(piece, east);
-  }
-
-  private void shuffle(Piece piece, Rectangle rect) {
-    int dx = (int) (Math.random() * rect.width);
-    int dy = (int) (Math.random() * rect.height);
-    piece.moveTo(rect.x + dx, rect.y + dy);
-  }
 
   // Keyboard event handling ----------------------------------------------
 

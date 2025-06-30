@@ -349,6 +349,11 @@ public class Piece {
     return puzzleY;
   }
 
+  /** Returns the bounds of the piece in the current position and rotation. */
+  public Rectangle getBounds() {
+    return new Rectangle(puzzleX, puzzleY, curWidth, curHeight);
+  }
+
   /** Returns the bounds of the drawn stuff. */
   public Rectangle getDrawBounds() {
     return new Rectangle(puzzleX - highlightSize, puzzleY - highlightSize, curWidth + highlightSize * 2, curHeight + highlightSize * 2);

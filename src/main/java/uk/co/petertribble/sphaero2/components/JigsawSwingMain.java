@@ -1,10 +1,11 @@
 package uk.co.petertribble.sphaero2.components;
 
-import uk.co.petertribble.sphaero2.JigsawFrame;
 import uk.co.petertribble.sphaero2.components.select.SelectImageState;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 public class JigsawSwingMain extends JFrame {
 
@@ -20,11 +21,16 @@ public class JigsawSwingMain extends JFrame {
         this.gameStateContext = new GameStateContext();
         this.gameStateContext.addGameStateListener((gameState) -> {
             SwingUtilities.invokeLater(() -> {
-                System.out.println("switching to state: "+gameState);
                 getContentPane().removeAll();
                 getContentPane().add(gameState.getPanel());
                 pack();
             });
+        });
+        getContentPane().addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                gameStateContext.setContentPaneSize(e.getComponent().getSize());
+            }
         });
     }
 

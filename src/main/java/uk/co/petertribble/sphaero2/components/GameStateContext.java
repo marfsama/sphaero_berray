@@ -1,10 +1,12 @@
 package uk.co.petertribble.sphaero2.components;
 
-import uk.co.petertribble.sphaero2.components.cut.CuttingState;
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.JigsawParam;
+import uk.co.petertribble.sphaero2.model.Piece;
 
-import java.util.function.BiConsumer;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -15,6 +17,10 @@ public class GameStateContext {
     /** Listener which will be informed when a new GameState is set. */
     private Consumer<GameState> gameStateListener;
     private GameState currentGameState;
+    private BufferedImage image;
+    private List<Piece> pieces;
+
+    private Dimension contentPaneSize;
 
     public GameStateContext() {
         this.jigsawParam = new JigsawParam();
@@ -46,5 +52,29 @@ public class GameStateContext {
 
     public void addGameStateListener(Consumer<GameState> gameStateListener) {
         this.gameStateListener = gameStateListener;
+    }
+
+    public void setImage(BufferedImage image) {
+        this.image = image;
+    }
+
+    public BufferedImage getImage() {
+        return image;
+    }
+
+    public void setPieces(List<Piece> pieces) {
+        this.pieces = pieces;
+    }
+
+    public List<Piece> getPieces() {
+        return pieces;
+    }
+
+    public Dimension getContentPaneSize() {
+        return contentPaneSize;
+    }
+
+    public void setContentPaneSize(Dimension contentPaneSize) {
+        this.contentPaneSize = contentPaneSize;
     }
 }

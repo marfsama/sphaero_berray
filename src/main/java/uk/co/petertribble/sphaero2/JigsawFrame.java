@@ -7,8 +7,6 @@ import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.*;
 
 import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageOutputStream;
-import javax.imageio.stream.MemoryCacheImageOutputStream;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -16,12 +14,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.stream.Collectors;
-
-import static java.nio.file.StandardOpenOption.*;
 
 /**
  * JFrame that runs a JigsawPuzzle. This is the front end for
@@ -230,7 +223,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
       dialog.pack();
       dialog.setLocationRelativeTo(this);
       dialog.setVisible(true);
-      jigsaw.getParams().getCutter().setJProgressBar(jp);
+      //jigsaw.getParams().getCutter().setJProgressBar(jp);
       jigsaw.reset();
       dialog.setVisible(false);
     }
@@ -250,7 +243,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     statusbar.add(progressLabel);
     statusbar.add(Box.createHorizontalStrut(2));
     statusbar.add(tlabel);
-    this.save = new JButton(new SaveAction());
+    this.save = new JButton(new SaveAction(jigsaw));
     statusbar.add(Box.createHorizontalStrut(2));
     statusbar.add(save);
 
@@ -340,105 +333,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
     } else if (e.getSource() == aboutItem) {
       JOptionPane.showMessageDialog(this, JigUtil.aboutMsg(),
           "About Sphaero2", JOptionPane.PLAIN_MESSAGE);
-    }
-  }
-
-  private static class ToolbarAction extends AbstractAction {
-    private Runnable actionMethod;
-
-    public ToolbarAction(String name) {
-      super(name);
-    }
-
-    public ToolbarAction(String name, Runnable actionMethod) {
-      super(name);
-      this.actionMethod = actionMethod;
-    }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      if (actionMethod != null) {
-        actionMethod.run();
-      }
-    }
-  }
-
-
-  public class SaveAction extends AbstractAction {
-
-
-    public SaveAction() {
-      super("Save");
-    }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      if (jigsaw != null && !jigsaw.isFinished()) {
-        String directory = jigsaw.getParams().getFilename().getName();
-        int pos = directory.lastIndexOf(".");
-        if (pos > 0 && pos < (directory.length() - 1)) { // If '.' is not the first or last character.
-          directory = directory.substring(0, pos);
-        }
-        Path outPath = Path.of(System.getProperty("user.home"), ".sphaero", directory);
-        try {
-          Files.createDirectories(outPath);
-          try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(outPath.resolve("save.txt"), WRITE, TRUNCATE_EXISTING, CREATE)));
-               ImageOutputStream piecesData = new MemoryCacheImageOutputStream(Files.newOutputStream(outPath.resolve("pieces.bin"), WRITE, TRUNCATE_EXISTING, CREATE))
-          ) {
-            writer.println("file: " + jigsaw.getParams().getFilename().getAbsolutePath());
-            writer.println("pieces: " + jigsaw.getParams().getPieces());
-            writer.println("cutter: " + jigsaw.getParams().getCutter().getName());
-            writer.println("# piece: id, imageX, imageY, imageWidth, imageHeight, puzzleX, puzzleY, rotation, multipieceid, neighbours (list of ids)");
-            writer.println("# multipiece: id, imageX, imageY, imageWidth, imageHeight, puzzleX, puzzleY, rotation");
-            for (Piece piece : jigsaw.getPieces().getPieces()) {
-              for (Piece subPiece : piece.getSubs()) {
-                writer.println("piece: " + subPiece.getId() + ", "
-                    + subPiece.getImageX() + ", " + subPiece.getImageY() + ", "
-                    + subPiece.getImageWidth() + ", " + subPiece.getImageHeight() + ", "
-                    + subPiece.getPuzzleX() + ", " + subPiece.getPuzzleY() + ", "
-                    + subPiece.getRotation() + ", "
-                    + (piece instanceof MultiPiece ? piece.getId() : -1) + ", "
-                    + subPiece.getNeighbors().stream().map(Piece::getId).map(String::valueOf).collect(Collectors.joining(","))
-                );
-
-                int[] data = subPiece.getData();
-                piecesData.writeInts(subPiece.getData(), 0, data.length);
-              }
-              if (piece instanceof MultiPiece) {
-                MultiPiece subPiece = (MultiPiece) piece;
-                writer.println("multipiece: " + subPiece.getId() + ", "
-                    + subPiece.getImageX() + ", " + subPiece.getImageY() + ", "
-                    + subPiece.getImageWidth() + ", " + subPiece.getImageHeight() + ", "
-                    + subPiece.getPuzzleX() + ", " + subPiece.getPuzzleY() + ", "
-                    + subPiece.getRotation() + ", "
-                    + subPiece.getNeighbors().stream().map(Piece::getId).map(String::valueOf).collect(Collectors.joining(","))
-                );
-              }
-            }
-          }
-          // write original image
-          ImageIO.write(jigsaw.getImage(), "png", outPath.resolve("source.png").toFile());
-          BufferedImage thumbnail = JigUtil.resizeImage(jigsaw.getImage(), THUMB_WIDTH, THUMB_HEIGHT);
-          ImageIO.write(thumbnail, "png", outPath.resolve("thumb.png").toFile());
-
-          // write current solve state
-          BufferedImage currentState = new BufferedImage(jigsaw.getWidth(), jigsaw.getHeight(), BufferedImage.TYPE_INT_ARGB);
-          Graphics graphics = currentState.getGraphics();
-          for (Piece piece : jigsaw.getPieces().getPieces()) {
-            piece.draw(graphics);
-          }
-          graphics.dispose();
-          BufferedImage currentStateThumbnail = JigUtil.resizeImage(currentState, THUMB_WIDTH, THUMB_HEIGHT);
-          ImageIO.write(currentStateThumbnail, "png", outPath.resolve("state.png").toFile());
-          thumbnail.flush();
-          currentState.flush();
-          currentStateThumbnail.flush();
-
-        } catch (IOException ex) {
-          throw new RuntimeException(ex);
-        }
-
-      }
     }
   }
 

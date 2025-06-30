@@ -110,7 +110,7 @@ public class ImagePropertiesPanel extends JPanel {
         propertiesPanel.add(sizeLabel = new JLabel("-"), cc.xy(3, 3));
 
         propertiesPanel.add(new JLabel("Number of Pieces:"), cc.xy(5, 3));
-        pieceCountSpinner = new JSpinner(new SpinnerNumberModel(100, 4, 1000, 1));
+        pieceCountSpinner = new JSpinner(new SpinnerNumberModel(100, 4, 10000, 1));
         propertiesPanel.add(pieceCountSpinner, cc.xy(7, 3));
 
         // Row 3: Type and Scaling
