@@ -4,9 +4,7 @@ import com.berray.math.Rect;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,7 +19,6 @@ public class Jigsaw {
   // Last in list = topmost piece
   private PiecesBin pieces;
   private boolean finished;
-  private List<PiecesBin> bins = new ArrayList<>();
 
   public Jigsaw(JigsawParam params, BufferedImage image) {
     this.image = image;
@@ -46,14 +43,6 @@ public class Jigsaw {
 
   public PiecesBin getPieces() {
     return pieces;
-  }
-
-  public List<PiecesBin> getPiecesBins() {
-    return bins;
-  }
-
-  public void addBin(String name) {
-    bins.add(new PiecesBin(idProvider, name));
   }
 
   public Image getFinishedImage() {
@@ -90,7 +79,7 @@ public class Jigsaw {
   }
 
   public void shuffle(int width, int height) {
-    pieces.shuffle(new Rect(0, 0, width, height));
+    pieces.shuffle(new Rect(0, 0, width, height), true);
 
     finished = false;
     if (finishedImage != null) {
@@ -100,7 +89,7 @@ public class Jigsaw {
   }
 
   public void reset() {
-    reset(true, image.getWidth(), image.getHeight());
+    reset(false, image.getWidth(), image.getHeight());
   }
 
   public void reset(boolean shuffle, int width, int height) {

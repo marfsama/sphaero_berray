@@ -2,12 +2,14 @@ package uk.co.petertribble.sphaero2.model;
 
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 
+import java.awt.*;
 import java.io.File;
 
 public class JigsawParam {
   private JigsawCutter cutter;
   private int pieces;
   private File filename;
+  private Rectangle rectangle;
 
   public JigsawParam() {
     // default parameter
@@ -19,6 +21,7 @@ public class JigsawParam {
     this.cutter = other.cutter;
     this.pieces = other.pieces;
     this.filename = other.filename;
+    this.rectangle = other.rectangle;
   }
 
   public JigsawCutter getCutter() {
@@ -44,5 +47,13 @@ public class JigsawParam {
 
   public void setFilename(File filename) {
     this.filename = filename;
+  }
+
+  public void setRectangle(Rectangle rectangle) {
+    this.rectangle = rectangle;
+  }
+
+  public Rectangle getRectangle() {
+    return rectangle;
   }
 }

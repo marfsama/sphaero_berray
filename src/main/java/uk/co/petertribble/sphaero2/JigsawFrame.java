@@ -7,8 +7,6 @@ import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.*;
 
 import javax.imageio.ImageIO;
-import javax.imageio.stream.ImageOutputStream;
-import javax.imageio.stream.MemoryCacheImageOutputStream;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -16,12 +14,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.stream.Collectors;
-
-import static java.nio.file.StandardOpenOption.*;
 
 /**
  * JFrame that runs a JigsawPuzzle. This is the front end for
@@ -63,25 +56,23 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
   public static final int THUMB_HEIGHT = 150;
   public static final int THUMB_WIDTH = 150;
-  private JMenuBar jmb;
+  private JMenuBar manuBar;
   private JMenu jmh;
   private JMenuItem newItem;
   private JMenuItem exitItem;
   private JMenuItem helpItem;
   private JMenuItem aboutItem;
-  private JMenuItem pictureItem;
-  private Image image;
-  private Icon miniImage;
   private Jigsaw jigsaw;
 
 
   private int pHeight = 480;
   private int pWidth = 640;
-  private SelectImagePanel selectImagePanel;
+  private SelectImagePanel selectImageFrame;
   private JButton save;
   private JLabel progressLabel;
   private TimeLabel tlabel;
   private InputManager inputManager = new InputManager();
+  private JigsawPanel puzzle;
 
   /**
    * Creates and displays a simple JFrame containing a jigsaw puzzle in a
@@ -143,8 +134,8 @@ public class JigsawFrame extends JFrame implements ActionListener {
   private void initFrameWork() {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-    this.selectImagePanel = new SelectImagePanel();
-    selectImagePanel.addPropertyChangeListener(event -> {
+    this.selectImageFrame = new SelectImagePanel();
+    selectImageFrame.addPropertyChangeListener(event -> {
       if (SelectImagePanel.JIGSAW_PARAMS.equals(event.getPropertyName())) {
         JigsawParam params = (JigsawParam) event.getNewValue();
         setupPuzzle(params);
@@ -168,12 +159,11 @@ public class JigsawFrame extends JFrame implements ActionListener {
     exitItem.addActionListener(this);
     jmf.add(exitItem);
 
-    jmb = new JMenuBar();
-    jmb.add(jmf);
-    setJMenuBar(jmb);
+    manuBar = new JMenuBar();
+    manuBar.add(jmf);
+    setJMenuBar(manuBar);
 
-    setIconImage(new ImageIcon(this.getClass().getClassLoader()
-        .getResource("pixmaps/sphaero2.png")).getImage());
+    setIconImage(new ImageIcon(this.getClass().getClassLoader().getResource("pixmaps/sphaero2.png")).getImage());
 
     /*
      * Create the help menu for the puzzle here, even though it's only
@@ -187,17 +177,11 @@ public class JigsawFrame extends JFrame implements ActionListener {
     aboutItem = new JMenuItem("About", KeyEvent.VK_A);
     aboutItem.addActionListener(this);
     jmh.add(aboutItem);
-    pictureItem = new JMenuItem("Show Picture", KeyEvent.VK_P);
-    pictureItem.addActionListener(this);
-    jmh.add(pictureItem);
   }
 
   private void init(Jigsaw jigsaw, boolean cut) {
     this.jigsaw = jigsaw;
     inputManager.clear();
-
-    jigsaw.getPiecesBins().clear();
-    jigsaw.addBin("Edges");
 
     JLayeredPane layeredPane = getLayeredPane();
     Component[] palettes = layeredPane.getComponentsInLayer(JLayeredPane.PALETTE_LAYER);
@@ -216,24 +200,13 @@ public class JigsawFrame extends JFrame implements ActionListener {
     previewPanel.setContentPane(previewImagePanel);
     layeredPane.add(previewPanel, JLayeredPane.PALETTE_LAYER);
 
-    JigsawPanel puzzle = new JigsawPanel(jigsaw);
+    this.puzzle = new JigsawPanel(jigsaw);
     JPanel oldJigsawPane = new JPanel(new BorderLayout());
     oldJigsawPane.add(new JScrollPane(puzzle));
     createStatusBar(oldJigsawPane);
+    createToolBar(oldJigsawPane);
     inputManager.addPiecesPanel(puzzle);
     setContentPane(oldJigsawPane);
-
-    for (PiecesBin piecesBin : jigsaw.getPiecesBins()) {
-      JigsawPiecesPanel binPiecesPanel = new JigsawPiecesPanel();
-      binPiecesPanel.setScale(0.25f);
-      binPiecesPanel.setPiecesBin(piecesBin);
-      InternalPanel binPanel = new InternalPanel(piecesBin.getName());
-      binPanel.setBounds(100, 100, 200, 200);
-      binPanel.setContentPane(binPiecesPanel);
-      layeredPane.add(binPanel, JLayeredPane.PALETTE_LAYER);
-
-      inputManager.addPiecesPanel(binPiecesPanel);
-    }
 
     pack();
 
@@ -250,18 +223,19 @@ public class JigsawFrame extends JFrame implements ActionListener {
       dialog.pack();
       dialog.setLocationRelativeTo(this);
       dialog.setVisible(true);
-      jigsaw.getParams().getCutter().setJProgressBar(jp);
+      //jigsaw.getParams().getCutter().setJProgressBar(jp);
       jigsaw.reset();
       dialog.setVisible(false);
     }
-    jmb.add(jmh);
+    manuBar.add(jmh);
     repaint();
     tlabel.start();
+    puzzle.requestFocus();
     puzzle.setTimeLabel(tlabel);
     puzzle.setProgressLabel(progressLabel);
   }
 
-  private void createStatusBar(JPanel ppanel) {
+  private void createStatusBar(JPanel panel) {
     JPanel statusbar = new JPanel();
     statusbar.setLayout(new FlowLayout(FlowLayout.RIGHT));
     this.tlabel = new TimeLabel();
@@ -269,17 +243,30 @@ public class JigsawFrame extends JFrame implements ActionListener {
     statusbar.add(progressLabel);
     statusbar.add(Box.createHorizontalStrut(2));
     statusbar.add(tlabel);
-    this.save = new JButton(new SaveAction());
+    this.save = new JButton(new SaveAction(jigsaw));
     statusbar.add(Box.createHorizontalStrut(2));
     statusbar.add(save);
 
-
-    ppanel.add(statusbar, BorderLayout.SOUTH);
+    panel.add(statusbar, BorderLayout.SOUTH);
   }
 
+  private void createToolBar(JPanel panel) {
+    JToolBar toolbar = new JToolBar();
+
+    toolbar.add(new JToggleButton(new ToolbarAction("toggleSelection")));
+    toolbar.add(new JButton(new ToolbarAction("stack", () -> puzzle.stack())));
+    toolbar.add(new JButton(new ToolbarAction("disperse")));
+    toolbar.add(new JButton(new ToolbarAction("clear")));
+    toolbar.add(new JButton(new ToolbarAction("shuffle")));
+    toolbar.add(new JButton(new ToolbarAction("arrange")));
+
+    panel.add(toolbar, BorderLayout.NORTH);
+  }
+
+
   private void initSelectImagePrompt() {
-    selectImagePanel.refresh();
-    setContentPane(selectImagePanel);
+    selectImageFrame.refresh();
+    setContentPane(selectImageFrame);
     setSize(pWidth, pHeight);
     setVisible(true);
   }
@@ -292,22 +279,11 @@ public class JigsawFrame extends JFrame implements ActionListener {
 
   private void showPrompt() {
     getContentPane().removeAll();
-    jmb.remove(jmh);
-    jmb.revalidate();
-    miniImage = null;
+    manuBar.remove(jmh);
+    manuBar.revalidate();
     System.gc();
     initSelectImagePrompt();
   }
-
-  private void showPicture() {
-    if (miniImage == null) {
-      miniImage = new ImageIcon(image.getScaledInstance(200, -1,
-          Image.SCALE_FAST));
-    }
-    JOptionPane.showMessageDialog(this, miniImage,
-        "Quick view", JOptionPane.PLAIN_MESSAGE);
-  }
-
 
   private void setupPuzzle(JigsawParam params) {
     // Get the image.
@@ -318,16 +294,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
           "Nonexistent file", JOptionPane.ERROR_MESSAGE);
       return;
     }
-    if (file.isDirectory()) {
-      try {
-        file = JigUtil.getRandomImageFile(file);
-      } catch (FileNotFoundException ex) {
-        JOptionPane.showMessageDialog(this,
-            "This folder contains no images.",
-            "Empty folder", JOptionPane.ERROR_MESSAGE);
-        return;
-      }
-    } else if (!JigUtil.isImage(file)) {
+    if (!JigUtil.isImage(file)) {
       JOptionPane.showMessageDialog(this, "This is not an image file.",
           "Invalid Image", JOptionPane.ERROR_MESSAGE);
       return;
@@ -343,10 +310,13 @@ public class JigsawFrame extends JFrame implements ActionListener {
       // FIXME this doesn't actually show the window properly until
       // after the pieces have been cut???
       // So the progress bar doesn't work either
+      Rectangle rectangle = params.getRectangle();
+      if (rectangle != null) {
+        image = image.getSubimage(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+      }
       init(new Jigsaw(params, JigUtil.resizeImage(image)), true);
     } catch (IOException e) {
-      JOptionPane.showMessageDialog(this, "Image file cannot be read.",
-          "Invalid Image", JOptionPane.ERROR_MESSAGE);
+      JOptionPane.showMessageDialog(this, "Image file cannot be read.", "Invalid Image", JOptionPane.ERROR_MESSAGE);
     }
   }
 
@@ -363,87 +333,6 @@ public class JigsawFrame extends JFrame implements ActionListener {
     } else if (e.getSource() == aboutItem) {
       JOptionPane.showMessageDialog(this, JigUtil.aboutMsg(),
           "About Sphaero2", JOptionPane.PLAIN_MESSAGE);
-    } else if (e.getSource() == pictureItem) {
-      showPicture();
-    }
-  }
-
-
-  public class SaveAction extends AbstractAction {
-
-
-    public SaveAction() {
-      super("Save");
-    }
-
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      if (jigsaw != null && !jigsaw.isFinished()) {
-        String directory = jigsaw.getParams().getFilename().getName();
-        int pos = directory.lastIndexOf(".");
-        if (pos > 0 && pos < (directory.length() - 1)) { // If '.' is not the first or last character.
-          directory = directory.substring(0, pos);
-        }
-        Path outPath = Path.of(System.getProperty("user.home"), ".sphaero", directory);
-        try {
-          Files.createDirectories(outPath);
-          try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(Files.newOutputStream(outPath.resolve("save.txt"), WRITE, TRUNCATE_EXISTING, CREATE)));
-               ImageOutputStream piecesData = new MemoryCacheImageOutputStream(Files.newOutputStream(outPath.resolve("pieces.bin"), WRITE, TRUNCATE_EXISTING, CREATE))
-          ) {
-            writer.println("file: " + jigsaw.getParams().getFilename().getAbsolutePath());
-            writer.println("pieces: " + jigsaw.getParams().getPieces());
-            writer.println("cutter: " + jigsaw.getParams().getCutter().getName());
-            writer.println("# piece: id, imageX, imageY, imageWidth, imageHeight, puzzleX, puzzleY, rotation, multipieceid, neighbours (list of ids)");
-            writer.println("# multipiece: id, imageX, imageY, imageWidth, imageHeight, puzzleX, puzzleY, rotation");
-            for (Piece piece : jigsaw.getPieces().getPieces()) {
-              for (Piece subPiece : piece.getSubs()) {
-                writer.println("piece: " + subPiece.getId() + ", "
-                    + subPiece.getImageX() + ", " + subPiece.getImageY() + ", "
-                    + subPiece.getImageWidth() + ", " + subPiece.getImageHeight() + ", "
-                    + subPiece.getPuzzleX() + ", " + subPiece.getPuzzleY() + ", "
-                    + subPiece.getRotation() + ", "
-                    + (piece instanceof MultiPiece ? piece.getId() : -1) + ", "
-                    + subPiece.getNeighbors().stream().map(Piece::getId).map(String::valueOf).collect(Collectors.joining(","))
-                );
-
-                int[] data = subPiece.getData();
-                piecesData.writeInts(subPiece.getData(), 0, data.length);
-              }
-              if (piece instanceof MultiPiece) {
-                MultiPiece subPiece = (MultiPiece) piece;
-                writer.println("multipiece: " + subPiece.getId() + ", "
-                    + subPiece.getImageX() + ", " + subPiece.getImageY() + ", "
-                    + subPiece.getImageWidth() + ", " + subPiece.getImageHeight() + ", "
-                    + subPiece.getPuzzleX() + ", " + subPiece.getPuzzleY() + ", "
-                    + subPiece.getRotation() + ", "
-                    + subPiece.getNeighbors().stream().map(Piece::getId).map(String::valueOf).collect(Collectors.joining(","))
-                );
-              }
-            }
-          }
-          // write original image
-          ImageIO.write(jigsaw.getImage(), "png", outPath.resolve("source.png").toFile());
-          BufferedImage thumbnail = JigUtil.resizeImage(jigsaw.getImage(), THUMB_WIDTH, THUMB_HEIGHT);
-          ImageIO.write(thumbnail, "png", outPath.resolve("thumb.png").toFile());
-
-          // write current solve state
-          BufferedImage currentState = new BufferedImage(jigsaw.getWidth(), jigsaw.getHeight(), BufferedImage.TYPE_INT_ARGB);
-          Graphics graphics = currentState.getGraphics();
-          for (Piece piece : jigsaw.getPieces().getPieces()) {
-            piece.draw(graphics);
-          }
-          graphics.dispose();
-          BufferedImage currentStateThumbnail = JigUtil.resizeImage(currentState, THUMB_WIDTH, THUMB_HEIGHT);
-          ImageIO.write(currentStateThumbnail, "png", outPath.resolve("state.png").toFile());
-          thumbnail.flush();
-          currentState.flush();
-          currentStateThumbnail.flush();
-
-        } catch (IOException ex) {
-          throw new RuntimeException(ex);
-        }
-
-      }
     }
   }
 

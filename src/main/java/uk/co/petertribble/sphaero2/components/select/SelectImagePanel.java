@@ -1,6 +1,9 @@
 package uk.co.petertribble.sphaero2.components.select;
 
 
+import uk.co.petertribble.sphaero2.components.select.filechooser.ImageFileView;
+import uk.co.petertribble.sphaero2.components.select.filechooser.ImagePreview;
+import uk.co.petertribble.sphaero2.components.select.filechooser.JigFileFilter;
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.Jigsaw;
 import uk.co.petertribble.sphaero2.model.JigsawParam;
@@ -41,14 +44,12 @@ public class SelectImagePanel extends JPanel implements ActionListener {
   public static final String JIGSAW = "jigsaw";
   private JigsawParam jigsawParams;
 
-  private JTextField imageField;
+  private JTextField imageFileNameField;
   private JButton browseButton;
-  private JComboBox<JigsawCutter> cutterCBox;
-  private JSpinner pieceSpinner;
-  private JLabel cutterDescLabel;
   private JButton okButton;
-  private JigsawResumePanel jigsawResumePanel;
-
+  private JigsawResumeListPanel jigsawResumePanel;
+  private ImagePropertiesPanel propertiesPanel;
+  private ActionListener startListener;
 
   public SelectImagePanel() {
     this.jigsawParams = new JigsawParam();
@@ -57,55 +58,36 @@ public class SelectImagePanel extends JPanel implements ActionListener {
     initComponents();
   }
 
+  public void setStartListener(ActionListener startListener) {
+    this.startListener = startListener;
+  }
+
+  public JigsawParam getJigsawParams() {
+    return jigsawParams;
+  }
+
+  public void setJigsawParams(JigsawParam jigsawParams) {
+    this.jigsawParams = jigsawParams;
+  }
+
   private void initComponents() {
     JPanel mainPane = this;
     mainPane.setLayout(new BoxLayout(mainPane, BoxLayout.PAGE_AXIS));
 
-    imageField = new JTextField();
-    imageField.setText(getCurrentPath());
-    imageField.selectAll();
+    imageFileNameField = new JTextField();
+    imageFileNameField.setText(getCurrentPath());
+    imageFileNameField.selectAll();
 
     browseButton = new JButton("Browse...");
     browseButton.setMnemonic(KeyEvent.VK_B);
     browseButton.addActionListener(this);
 
-    JLabel imageLabel = createHelpLabel("<html>"
-        + "If this is an image file, it is used to create the puzzle. "
-        + "If it is a folder, an image file is selected from it "
-        + "(including any subfolders) at random.");
-
     JPanel imageBPane = new JPanel();
     imageBPane.setLayout(new BoxLayout(imageBPane, BoxLayout.LINE_AXIS));
-    imageBPane.add(imageField);
+    imageBPane.setBorder(createTitledBorder("Find an image"));
+    imageBPane.add(imageFileNameField);
     imageBPane.add(Box.createRigidArea(new Dimension(10, 0)));
     imageBPane.add(browseButton);
-
-    JPanel imagePane = new JPanel(new BorderLayout());
-    imagePane.setBorder(createTitledBorder("Find an image"));
-    imagePane.add(imageBPane, BorderLayout.NORTH);
-    imagePane.add(imageLabel, BorderLayout.CENTER);
-
-    cutterCBox = new JComboBox<>(JigsawCutter.cutters);
-    cutterCBox.setSelectedItem(jigsawParams.getCutter());
-    cutterCBox.addActionListener(this);
-
-    cutterDescLabel = createHelpLabel(null);
-    JPanel cutterPane = new JPanel(new BorderLayout());
-    cutterPane.add(cutterCBox, BorderLayout.NORTH);
-    cutterPane.add(cutterDescLabel, BorderLayout.CENTER);
-    cutterPane.setBorder(createTitledBorder("Piece Style"));
-    fireCutterChanged();
-
-    pieceSpinner = new JSpinner(new SpinnerNumberModel(
-        DEFAULT_PIECES, JigsawCutter.MIN_PIECES,
-        JigsawCutter.MAX_PIECES, 1));
-    JLabel pieceLabel = createHelpLabel("<html>"
-        + " The puzzle will have roughly this many pieces.");
-    JPanel piecePane = new JPanel(new BorderLayout());
-    piecePane.add(pieceSpinner, BorderLayout.NORTH);
-    piecePane.add(pieceLabel, BorderLayout.CENTER);
-    piecePane.setBorder(createTitledBorder("Piece Count"));
-    pieceSpinner.addChangeListener(event -> jigsawParams.setPieces((Integer) pieceSpinner.getValue()));
 
     JPanel okPanel = new JPanel();
     okPanel.setLayout(new BoxLayout(okPanel, BoxLayout.LINE_AXIS));
@@ -113,28 +95,21 @@ public class SelectImagePanel extends JPanel implements ActionListener {
     okPanel.add(Box.createHorizontalGlue());
     okButton = new JButton("Start Puzzling");
     okButton.setMnemonic(KeyEvent.VK_K);
-    okPanel.add(okButton);
     okButton.addActionListener(this);
-
-    SamplePanel sPanel = new SamplePanel(imageField);
-    if (sPanel.samplesValid()) {
-      JPanel samplePane = new JPanel(new BorderLayout());
-      samplePane.setBorder(createTitledBorder("Select an image"));
-      samplePane.add(new JScrollPane(sPanel));
-      mainPane.add(samplePane);
-    }
+    okPanel.add(okButton);
 
     JPanel resumePane = new JPanel();
     resumePane.setLayout(new BorderLayout());
-    this.jigsawResumePanel = new JigsawResumePanel(Path.of(System.getProperty("user.home")).resolve(".sphaero"));
+    this.jigsawResumePanel = new JigsawResumeListPanel(Path.of(System.getProperty("user.home")).resolve(".sphaero"));
     jigsawResumePanel.setActionListener(this);
     resumePane.add(new JScrollPane(jigsawResumePanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS), BorderLayout.CENTER);
     resumePane.setBorder(createTitledBorder("Resume"));
 
+    propertiesPanel = new ImagePropertiesPanel();
+    propertiesPanel.setBorder(createTitledBorder("Preview"));
 
-    mainPane.add(imagePane);
-    mainPane.add(piecePane);
-    mainPane.add(cutterPane);
+    mainPane.add(imageBPane);
+    mainPane.add(propertiesPanel);
     mainPane.add(resumePane);
     mainPane.add(okPanel);
   }
@@ -149,8 +124,8 @@ public class SelectImagePanel extends JPanel implements ActionListener {
    * imageField.
    */
   private File getCurrentFolder() {
-    String text = imageField.getText().trim();
-    return new File((text.length() == 0) ? "." : text);
+    String text = imageFileNameField.getText().trim();
+    return new File(text.isEmpty() ? "." : text);
   }
 
   /**
@@ -181,21 +156,16 @@ public class SelectImagePanel extends JPanel implements ActionListener {
     return BorderFactory.createCompoundBorder(outer, inner);
   }
 
-  private void fireCutterChanged() {
-    JigsawCutter cutter = (JigsawCutter) cutterCBox.getSelectedItem();
-    cutterDescLabel.setText("<html>" + cutter.getDescription());
-    jigsawParams.setCutter(cutter);
-  }
-
   private void fireBrowseAction() {
     JFileChooser chooser = new JFileChooser(getCurrentFolder());
     chooser.setFileFilter(new JigFileFilter());
-    chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+    chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
     chooser.setAccessory(new ImagePreview(chooser));
     chooser.setFileView(new ImageFileView());
     if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-      imageField.setText(chooser.getSelectedFile().getAbsolutePath());
+      imageFileNameField.setText(chooser.getSelectedFile().getAbsolutePath());
       jigsawParams.setFilename(chooser.getSelectedFile());
+      propertiesPanel.setImage(chooser.getSelectedFile());
     }
   }
 
@@ -203,12 +173,15 @@ public class SelectImagePanel extends JPanel implements ActionListener {
   public void actionPerformed(ActionEvent e) {
     if (e.getSource() == browseButton) {
       fireBrowseAction();
-    } else if (e.getSource() == cutterCBox) {
-      fireCutterChanged();
     } else if (e.getSource() == okButton) {
-      firePropertyChange(JIGSAW_PARAMS, jigsawParams, new JigsawParam(jigsawParams));
+      jigsawParams.setRectangle(propertiesPanel.getImageSelection());
+      jigsawParams.setPieces(propertiesPanel.getPieceCount());
+      jigsawParams.setCutter(propertiesPanel.getSelectedCutter());
+      if (startListener != null) {
+        startListener.actionPerformed(new ActionEvent(this, 1, "start"));
+      }
     } else if (e.getSource() == jigsawResumePanel) {
-      if (e.getID() == JigsawResumeJigsawPanel.LOAD_ACTION_ID) {
+      if (e.getID() == JigsawResumeItemPanel.LOAD_ACTION_ID) {
         loadSavedState(Path.of(e.getActionCommand()));
       }
     }

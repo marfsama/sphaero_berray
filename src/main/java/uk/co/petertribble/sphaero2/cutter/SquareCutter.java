@@ -37,7 +37,7 @@ public class SquareCutter extends JigsawCutter {
     int y1 = 0;
     int y2 = firstSouthEdge;
 
-    startProgress(rows * columns);
+    startProgress("cutting", rows * columns);
 
     // Create piece images
     Piece[][] matrix = new Piece[rows][columns];
@@ -54,6 +54,7 @@ public class SquareCutter extends JigsawCutter {
             x1, y1, pieceW, pieceH,
             width, height, rotation);
         updateProgress();
+        statusListener.ejectPiece(matrix[i][j]);
 
         // Set up x1 and x2 for next slice
         x1 = x2 + 1;

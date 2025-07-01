@@ -2,7 +2,6 @@ package uk.co.petertribble.sphaero2.cutter;
 
 import uk.co.petertribble.sphaero2.model.Piece;
 
-import javax.swing.*;
 import java.awt.image.BufferedImage;
 
 /**
@@ -24,16 +23,16 @@ public abstract class JigsawCutter {
       new SquareCutter(),
       new RectCutter(),
       new QuadCutter(),
+      new HexCutter()
   };
 
   public int prefPieces = DEFAULT_PIECES;
-  public JProgressBar jp;
-  public int iprogress;
-  public int progressmax;
+  protected CutterStatusListener statusListener;
+  private int iprogress;
 
-  @Override
-  public String toString() {
-    return getName();
+  /** Sets the status listener to receive the cutting progress. */
+  public void setStatusListener(CutterStatusListener statusListener) {
+    this.statusListener = statusListener;
   }
 
   /**
@@ -83,31 +82,14 @@ public abstract class JigsawCutter {
   }
 
   /**
-   * Associate a JProgressBar that can be used to display progress of
-   * generating the pieces.
-   *
-   * @param jp the progress bar to update while cutting is in progress
-   */
-  public void setJProgressBar(JProgressBar jp) {
-    this.jp = jp;
-    if (progressmax > 0) {
-      jp.setMaximum(progressmax);
-      jp.setValue(iprogress);
-    }
-  }
-
-  /**
-   * Start generating. If there's a progress bar, it will be set to
-   * zero.
+   * Start a generating step.
    *
    * @param progressmax the anticipated number of steps
    */
-  public void startProgress(int progressmax) {
-    this.progressmax = progressmax;
-    iprogress = 0;
-    if (jp != null) {
-      jp.setMaximum(progressmax);
-      jp.setValue(iprogress);
+  public void startProgress(String step, int progressmax) {
+    if (statusListener != null) {
+      statusListener.startStep(step, progressmax);
+      iprogress = 0;
     }
   }
 
@@ -116,8 +98,8 @@ public abstract class JigsawCutter {
    */
   public void updateProgress() {
     iprogress++;
-    if (jp != null) {
-      jp.setValue(iprogress);
+    if (statusListener != null) {
+      statusListener.progress(iprogress);
     }
   }
 
@@ -149,5 +131,10 @@ public abstract class JigsawCutter {
       }
     }
     return ret;
+  }
+
+  @Override
+  public String toString() {
+    return getName();
   }
 }

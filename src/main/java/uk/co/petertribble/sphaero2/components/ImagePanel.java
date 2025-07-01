@@ -17,22 +17,31 @@ public class ImagePanel extends JPanel {
 
   @Override
   public Dimension getPreferredSize() {
+    if (image == null) {
+      return getMinimumSize();
+    }
     if (image != null && !scale) {
       Insets insets = getInsets();
       return new Dimension(image.getWidth() + insets.left + insets.right, image.getHeight() + insets.top + insets.bottom);
     }
 
-    return super.getPreferredSize();
+    Dimension min = super.getMinimumSize();
+
+    int width = Math.max(min.width, getWidth());
+    int height = Math.max(min.height, getHeight());
+
+    float aspect = 1.0f * image.getWidth() / image.getHeight();
+
+    if (aspect > 1.0) {
+      return new Dimension(width, (int) (width / aspect));
+    }
+
+    return new Dimension((int) (height * aspect), height);
   }
 
   @Override
   public Dimension getMaximumSize() {
-    return super.getPreferredSize();
-  }
-
-  @Override
-  public Dimension getMinimumSize() {
-    return super.getPreferredSize();
+    return super.getMaximumSize();
   }
 
   public BufferedImage getImage() {
@@ -41,6 +50,7 @@ public class ImagePanel extends JPanel {
 
   public void setImage(BufferedImage image) {
     this.image = image;
+    revalidate();
   }
 
   public boolean isScale() {

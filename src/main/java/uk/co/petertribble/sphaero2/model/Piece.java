@@ -1,5 +1,7 @@
 package uk.co.petertribble.sphaero2.model;
 
+import uk.co.petertribble.sphaero2.cutter.BevelUtil;
+
 import java.awt.*;
 import java.awt.image.MemoryImageSource;
 import java.util.HashSet;
@@ -37,16 +39,6 @@ public class Piece {
    */
   private static final int ROTATION_PROXIMITY_THRESHOLD = 5;
 
-  // Constructor and fields -----------------------------------------------
-  // This mimics Color.brighter() and Color.darker(). They multiply or
-  // divide R/G/B by 0.7, and trim them to 0 or 255 if needed. I'm going
-  // to use 7/10 (so it's int arithmetic), and not use Math. I don't quite
-  // trust inlining yet. And I certainly don't want to make scads of Color
-  // objects for each pixel. It's bad enough these are methods, and not
-  // inlined in bevel().
-  private static final int COLOR_NUMERATOR = 10;
-  private static final int COLOR_DENOMINATOR = 7;
-  private static final int COLOR_MAX_BRIGHTNESS = 255 * COLOR_DENOMINATOR / COLOR_NUMERATOR;
 
   /**
    * each piece has a unique id (used for saving the jigsaw to disk).
@@ -68,6 +60,12 @@ public class Piece {
   protected int curWidth;
   protected int curHeight;
   protected int[] curData;
+  /** Highlight layer. */
+  protected int highlightWidth;
+  protected int highlightHeight;
+  protected int highlightSize = 10;
+  private int[] highlightData;
+
   // Location in the image.
   private final int imageX;
   private final int imageY;
@@ -83,11 +81,16 @@ public class Piece {
   private int puzzleY;
   // Image for this Piece. null for a MultiPiece
   private Image image;
+  private Image hightlightImage;
 
   // Accessors ------------------------------------------------------------
   // This is measured in integer degrees, 0-359.  0 is unrotated.  90 is 90
   // degrees clockwise, etc.
   private int rotation;
+
+  // Current position (for animation)
+  private int currentX;
+  private int currentY;
 
   /**
    * Creates a new Piece.  No initial rotation is done.  (This is needed
@@ -110,6 +113,12 @@ public class Piece {
     this.origData = data;
     this.imageX = imageX;
     this.imageY = imageY;
+
+    this.puzzleX = imageX;
+    this.puzzleY = imageY;
+    this.currentX = imageX;
+    this.currentY = imageY;
+
     this.curWidth = this.origWidth = imageWidth;
     this.curHeight = this.origHeight = imageHeight;
     this.totalWidth = totalWidth;
@@ -135,74 +144,6 @@ public class Piece {
                int rotation) {
     this(pieceNum, data, imageX, imageY, imageWidth, imageHeight, totalWidth, totalHeight);
     forceSetRotation(rotation);
-  }
-
-  /**
-   * Draws bevels on data.  Check every opaque pixel's NW and SE
-   * neighbors.  If NW is transparent and SE is opaque, brighten the
-   * central pixel.  If it's the other way around, darken it.  If both or
-   * neither are transparent, leave it alone.
-   */
-  private static void bevel(int[] data, int width, int height) {
-    // Scan diagonal NW-SE lines.  The first and last lines can be skipped.
-    // moved these out of the loop
-    boolean nw; // true iff that pixel is opaque
-    boolean c; // true iff that pixel is opaque
-    boolean se; // true iff that pixel is opaque
-    for (int i = 0; i < width + height - 3; i++) {
-      nw = false;
-      int x = Math.max(0, i - height + 2);
-      int y = Math.max(0, height - i - 2);
-      c = (((data[y * width + x] >> 24) & 0xff) > 0);
-      while ((x < width) && (y < height)) {
-        if ((x + 1 < width) && (y + 1 < height)) {
-          se = (((data[(y + 1) * width + (x + 1)] >> 24) & 0xff) > 0);
-        } else {
-          se = false;
-        }
-        if (c) {
-          int datum = data[y * width + x];
-          if (nw && !se) {
-            data[y * width + x] = darker(datum);
-          } else if (!nw && se) {
-            data[y * width + x] = brighter(datum);
-          }
-        }
-        nw = c;
-        c = se;
-        x++;
-        y++;
-      }
-    }
-  }
-
-  private static int brighter(int val) {
-    int r = (val >> 16) & 0xff;
-    int g = (val >> 8) & 0xff;
-    int b = (val) & 0xff;
-
-    // Black goes to #030303 gray
-    if (r == 0 && g == 0 && b == 0) {
-      return 0xff030303;
-    }
-    r = r < 3 ? 3 : r;
-    g = g < 3 ? 3 : g;
-    b = b < 3 ? 3 : b;
-
-    r = r >= COLOR_MAX_BRIGHTNESS ? 255 : r * COLOR_NUMERATOR / COLOR_DENOMINATOR;
-    g = g >= COLOR_MAX_BRIGHTNESS ? 255 : g * COLOR_NUMERATOR / COLOR_DENOMINATOR;
-    b = b >= COLOR_MAX_BRIGHTNESS ? 255 : b * COLOR_NUMERATOR / COLOR_DENOMINATOR;
-    return ((((0xff00 | r) << 8) | g) << 8) | b;
-  }
-
-  private static int darker(int val) {
-    int r = (val >> 16) & 0xff;
-    int g = (val >> 8) & 0xff;
-    int b = (val) & 0xff;
-    r = r * COLOR_DENOMINATOR / COLOR_NUMERATOR;
-    g = g * COLOR_DENOMINATOR / COLOR_NUMERATOR;
-    b = b * COLOR_DENOMINATOR / COLOR_NUMERATOR;
-    return ((((0xff00 | r) << 8) | g) << 8) | b;
   }
 
   public int getId() {
@@ -408,6 +349,29 @@ public class Piece {
     return puzzleY;
   }
 
+  /** Returns the bounds of the piece in the current position and rotation. */
+  public Rectangle getBounds() {
+    return new Rectangle(puzzleX, puzzleY, curWidth, curHeight);
+  }
+
+  /** Returns the bounds of the drawn stuff. */
+  public Rectangle getDrawBounds() {
+    return new Rectangle(puzzleX - highlightSize, puzzleY - highlightSize, curWidth + highlightSize * 2, curHeight + highlightSize * 2);
+  }
+
+  public int getCurrentX() {
+    return currentX;
+  }
+
+  public int getCurrentY() {
+    return currentY;
+  }
+
+  public void setCurrentPosition(int x, int y) {
+    this.currentX = x;
+    this.currentY = y;
+  }
+
   /**
    * Returns this Piece's current image.  This will be the Piece's portion
    * of the original image, rotated by this Piece's current rotation.
@@ -479,7 +443,7 @@ public class Piece {
    * @param g the Graphics object to draw to
    */
   public void draw(Graphics g) {
-    draw(g, getPuzzleX(), getPuzzleY());
+    draw(g, currentX, currentY);
   }
 
   /**
@@ -489,9 +453,30 @@ public class Piece {
    * @param g the Graphics object to draw to
    */
   public void draw(Graphics g, int x, int y) {
-    Image img = getImage();
-    if (img != null) {
-      g.drawImage(img, x, y, null);
+    if (image != null) {
+      g.drawImage(image, x, y, null);
+    }
+  }
+
+  /**
+   * Draws this Pieces highlight in the given Graphics object.  The current image
+   * will be drawn, at this Piece's current puzzle position.
+   *
+   * @param g the Graphics object to draw to
+   */
+  public void drawHighlight(Graphics g) {
+    drawHighlight(g, getCurrentX(), getCurrentY());
+  }
+
+  /**
+   * Draws this Pieces highlight in the given Graphics object.  The current image
+   * will be drawn, at this Piece's current puzzle position.
+   *
+   * @param g the Graphics object to draw to
+   */
+  public void drawHighlight(Graphics g, int x, int y) {
+    if (hightlightImage != null) {
+      g.drawImage(hightlightImage, x - highlightSize, y - highlightSize, null);
     }
   }
 
@@ -661,8 +646,13 @@ public class Piece {
         }
       }
     }
-    bevel(curData, curWidth, curHeight);
+    curData = BevelUtil.bevel(curData, curWidth, curHeight, 5);
+    highlightData = BevelUtil.glow(curData, curWidth, curHeight, highlightSize, 0x40FFFF00);
+    highlightWidth = curWidth + highlightSize * 2;
+    highlightHeight = curHeight + highlightSize * 2;
     image = Toolkit.getDefaultToolkit().createImage(
         new MemoryImageSource(curWidth, curHeight, curData, 0, curWidth));
+    hightlightImage = Toolkit.getDefaultToolkit().createImage(
+            new MemoryImageSource(highlightWidth, highlightHeight, highlightData, 0, highlightWidth));
   }
 }

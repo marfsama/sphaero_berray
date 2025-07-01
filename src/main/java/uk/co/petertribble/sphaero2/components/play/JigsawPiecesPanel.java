@@ -2,15 +2,15 @@ package uk.co.petertribble.sphaero2.components.play;
 
 import com.berray.math.Rect;
 import uk.co.petertribble.sphaero2.model.Piece;
+import uk.co.petertribble.sphaero2.model.PieceSet;
 import uk.co.petertribble.sphaero2.model.PiecesBin;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
 
 /**
  * Panel with pieces to display and solve. The pieces on this panel do not necessarily be all pieces of the jigsaw.
@@ -30,7 +30,11 @@ public class JigsawPiecesPanel extends JPanel {
 
   public float scale = 1.0f;
 
-  public Point lastClick;
+  /** Point where the mouse was clicked when the drag started. */
+  public Point dragStart;
+  /** Anchor of the thing that is dragged when the drag started. This is either the top left corner of the selection
+   * rectangle or the {@link PieceSet#getAnchor() anchor}  of the {@link PieceSet}. */
+  public Point dragAnchor;
 
   // Available background colors
   private static final Color[] bgColors = {
@@ -56,20 +60,16 @@ public class JigsawPiecesPanel extends JPanel {
       NORMAL_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR),
       CLEAR_CURSOR = new Cursor(Cursor.CROSSHAIR_CURSOR);
 
-  private static final Rectangle emptyRect = new Rectangle(0, 0, 0, 0);
-
   private Dimension prefSize;
-  private boolean mouseDown;
-  private boolean clearMode;
   // Translation from a piece's upper-left corner to the point you clicked
   // on.
   private int transX;
   private int transY;
   private int bgColor = 4;
-  private int clearX0;
-  private int clearY0;
-  private int clearX1;
-  private int clearY1;
+
+  private DragMode dragMode = DragMode.NONE;
+  private Rectangle selectionRectangle;
+
   private Color clearColor;
 
   // If a keyboard command can affect a piece, it'll be this one.
@@ -79,6 +79,14 @@ public class JigsawPiecesPanel extends JPanel {
    * Bin with the pieces to display and edit.
    */
   private PiecesBin piecesBin;
+  /** Set of pieces which are selected at the moment. */
+  private PieceSet selection = new PieceSet();
+  /** Pieces in the selection rectangle when is was drawn. */
+  private PieceSet piecesInSelectionRectangle;
+
+  private final List<Piece> animatingPieces = new ArrayList<>();
+  private final Map<Piece, AnimationData> animationDataMap = new HashMap<>();
+  private final Timer animationTimer;
 
 
   public JigsawPiecesPanel() {
@@ -87,10 +95,54 @@ public class JigsawPiecesPanel extends JPanel {
     setBackground(bgColors[bgColor]);
     setCursor(NORMAL_CURSOR);
     setClearColor();
-    addWiring();
+    addListeners();
+    animationTimer = new Timer(10, this::timerAction);
   }
 
-  private void addWiring() {
+  private float easeOut(float t) {
+    return 1 - (1 - t) * (1 - t);
+  }
+
+  private void animatePieceTo(Piece piece, int endX, int endY, int durationMs) {
+    // If already animating, remove from current animation
+    if (animatingPieces.contains(piece)) {
+      animatingPieces.remove(piece);
+      animationDataMap.remove(piece);
+    }
+
+    // Set up new animation
+    AnimationData data = new AnimationData(
+            piece.getCurrentX(),
+            piece.getCurrentY(),
+            endX,
+            endY,
+            durationMs
+    );
+
+    // Update final puzzle position
+    piece.setPuzzlePosition(endX, endY);
+
+    animatingPieces.add(piece);
+    animationDataMap.put(piece, data);
+
+    if (!animationTimer.isRunning()) {
+      animationTimer.start();
+    }
+  }
+
+  public void animateAllToPuzzlePositions(int durationMs) {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      throw new IllegalStateException("method can only be called from the EDT");
+    }
+    for (Piece piece : piecesBin.getPieces()) {
+      if (piece.getCurrentX() != piece.getPuzzleX() ||
+              piece.getCurrentY() != piece.getPuzzleY()) {
+        animatePieceTo(piece, piece.getPuzzleX(), piece.getPuzzleY(), durationMs);
+      }
+    }
+  }
+
+  private void addListeners() {
     addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
@@ -113,11 +165,6 @@ public class JigsawPiecesPanel extends JPanel {
       public void keyTyped(KeyEvent e) {
         keyTyped0(e);
       }
-
-      @Override
-      public void keyPressed(KeyEvent e) {
-        keyPressed0(e);
-      }
     });
   }
 
@@ -134,9 +181,47 @@ public class JigsawPiecesPanel extends JPanel {
    * randomize rotation.
    */
   public void shuffle() {
-    piecesBin.shuffle(new Rect(0,0, getWidth(), getHeight()));
+    shuffle((int) (getWidth() / scale), (int) (getHeight() / scale));
+  }
+
+  public void shuffle(int width, int height) {
+    shuffle(0, 0, width, height, false);
+  }
+
+  public void shuffleSelection() {
+    if (selectionRectangle != null) {
+      shuffle(selectionRectangle.x, selectionRectangle.y, selectionRectangle.width, selectionRectangle.height, false);
+    }
+  }
+
+  public void shuffle(int x, int y, int width, int height, boolean randomizeRotation) {
+    piecesBin.shuffle(new Rect(x, y, width, height), randomizeRotation);
+    animateAllToPuzzlePositions(500);
     repaint();
   }
+
+  public void clearSelection() {
+    if (selectionRectangle != null) {
+      clear(selectionRectangle);
+    }
+  }
+
+  public void clear(Rectangle rectangleToClear) {
+    piecesBin.clear(rectangleToClear);
+    animateAllToPuzzlePositions(500);
+    repaint();
+  }
+
+  public void arrange() {
+    if (selectionRectangle != null) {
+      piecesBin.arrange2(selectionRectangle);
+      animateAllToPuzzlePositions(500);
+      repaint();
+    }
+
+  }
+
+
 
   /**
    * Push the top piece (at the front) to the bottom (the back).
@@ -157,36 +242,23 @@ public class JigsawPiecesPanel extends JPanel {
       return;
     }
 
-    Map<Integer, Piece> piecesMap = new HashMap<>();
-    piecesBin.getPieces().forEach(piece ->piecesMap.put(piece.getId(), piece));
+    // first draw the highlights of the selected pieces
+    for (Piece piece : selection) {
+      piece.drawHighlight(g);
+    }
 
     for (Piece piece : piecesBin.getPieces()) {
       piece.draw(g);
     }
-    // draw lines from last piece to all its neighbors
-    if (piecesBin.getPieces().size() > 0) {
-      Piece lastPiece = piecesBin.getPieces().get(piecesBin.getPieces().size() - 1);
-      /*
-      for (Piece neighbour : lastPiece.getNeighbors()) {
-        g.setColor(Color.GREEN);
-        g.drawLine(lastPiece.getPuzzleX()+lastPiece.getCurrentWidth()/2, lastPiece.getPuzzleY()+lastPiece.getCurrentHeight()/2,
-            neighbour.getPuzzleX()+neighbour.getCurrentWidth()/2, neighbour.getPuzzleY()+neighbour.getCurrentHeight()/2);
-      }
-       */
-    }
 
-    if (lastClick != null) {
-      g.setColor(Color.WHITE);
-      g.drawArc(lastClick.x - 10, lastClick.y - 10, 20, 20, 0, 360);
-    }
-
-    if (clearMode && mouseDown) {
-      int cx = Math.min(clearX0, clearX1);
-      int cy = Math.min(clearY0, clearY1);
-      int cw = Math.abs(clearX0 - clearX1);
-      int ch = Math.abs(clearY0 - clearY1);
+    if (selectionRectangle != null) {
       g.setColor(clearColor);
-      g.fillRect(cx, cy, cw, ch);
+      int x = Math.min(selectionRectangle.x, selectionRectangle.x + selectionRectangle.width);
+      int y = Math.min(selectionRectangle.y, selectionRectangle.y + selectionRectangle.height);
+      int width = Math.abs(selectionRectangle.width);
+      int height = Math.abs(selectionRectangle.height);
+
+      g.fillRect(x, y, width, height);
     }
   }
 
@@ -196,11 +268,6 @@ public class JigsawPiecesPanel extends JPanel {
 
   public void setScale(float scale) {
     this.scale = scale;
-  }
-
-  private void setClearMode(boolean flag) {
-    clearMode = flag;
-    setCursor(clearMode ? CLEAR_CURSOR : NORMAL_CURSOR);
   }
 
   @Override
@@ -245,19 +312,38 @@ public class JigsawPiecesPanel extends JPanel {
     int x = (int) (e.getX() / scale);
     int y = (int) (e.getY() / scale);
 
-    this.lastClick = new Point(x, y);
+    this.dragStart = new Point(x, y);
     repaint();
 
     requestFocus();
     if (piecesBin == null) {
       return;
     }
-    mouseDown = true;
-    if (clearMode) {
-      startClearRect(e);
-    } else {
-      grabPiece(e);
+
+    // first check if the click is inside the selection rectangle
+    if (selectionRectangle != null && selectionRectangle.contains(x,y)) {
+      dragMode = DragMode.MOVE_SELECTION_RECTANGLE;
+      dragAnchor = selectionRectangle.getLocation();
+      // get pieces which are now in the selection rectangle (before moving)
+      this.piecesInSelectionRectangle = piecesBin.getPiecesInRect(selectionRectangle);
+
+      return;
     }
+
+    // try to grab a piece.
+    Piece grabbedPiece = grabPiece(e);
+    // when a piece is grabbed (and therefore should be moved)...
+    if (grabbedPiece != null) {
+      // ... clear the selection rectangle and return
+      selectionRectangle = null;
+      dragMode = DragMode.PIECES;
+      return;
+    }
+
+    // no piece grabbed. start selection rectangle
+    selectionRectangle = new Rectangle((int) (e.getX() / scale), (int) (e.getY() / scale), 1, 1);
+    dragMode = DragMode.DRAG_SELECTION_RECTANGLE;
+
   }
 
   protected void mouseDragged0(MouseEvent e) {
@@ -265,10 +351,19 @@ public class JigsawPiecesPanel extends JPanel {
       return;
     }
 
-    if (clearMode) {
-      dragClearRect(e);
-    } else {
+    if (dragMode == DragMode.MOVE_SELECTION_RECTANGLE) {
+      moveSelectionRect(e);
+      return;
+    }
+
+    if (dragMode == DragMode.DRAG_SELECTION_RECTANGLE) {
+      dragSelectionRect(e);
+      return;
+    }
+
+    if (dragMode == DragMode.PIECES) {
       dragPiece(e);
+      return;
     }
   }
 
@@ -276,12 +371,18 @@ public class JigsawPiecesPanel extends JPanel {
     if (piecesBin == null) {
       return;
     }
-    mouseDown = false;
-    if (clearMode) {
-      finishClearRect(e);
-    } else {
+    if (dragMode == DragMode.DRAG_SELECTION_RECTANGLE) {
+      finishSelectionRect(e);
+    } else if (dragMode == DragMode.MOVE_SELECTION_RECTANGLE){
+      // remove selection rectangle if it was not dragged
+      if (dragStart.equals(e.getPoint())) {
+        repaintRectangleScaled(selectionRectangle);
+        selectionRectangle = null;
+      }
+    } else if (dragMode == DragMode.PIECES){
       releasePiece();
     }
+    dragMode = DragMode.NONE;
   }
 
   public Piece getPieceAt(Point p) {
@@ -298,7 +399,11 @@ public class JigsawPiecesPanel extends JPanel {
     return null;
   }
 
-  private void grabPiece(MouseEvent e) {
+  /**
+   * Tries to grab the piece at the specified point. If there is a piece, it is set as the current focus piece and
+   * returned. Else null is returned.
+   */
+  private Piece grabPiece(MouseEvent e) {
     int jigsawX = (int) (e.getX() / scale);
     int jigsawY = (int) (e.getY() / scale);
     focusPiece = null;
@@ -308,18 +413,27 @@ public class JigsawPiecesPanel extends JPanel {
       Piece piece = iter.previous();
       if (piece.contains(jigsawX, jigsawY)) {
         focusPiece = piece;
-        iter.remove();
+        // remove piece from whichever position it is currently
+        try {
+          iter.remove();
+        } catch (UnsupportedOperationException e2) {
+          System.out.println(piece.getClass());
+          e2.printStackTrace();
+        }
       }
     }
+    // if the user clicked a piece
     if (focusPiece != null) {
+      // add the piece to the stack again, this time on top
       pieces.add(focusPiece);
+
       transX = jigsawX - focusPiece.getPuzzleX();
       transY = jigsawY - focusPiece.getPuzzleY();
       // The focusPiece might have moved up in Z-order. At worst, we have
       // to repaint its bounding rectangle.
-      repaint(0, (int) (focusPiece.getPuzzleX() * scale), (int) (focusPiece.getPuzzleY() * scale),
-          (int) (focusPiece.getCurrentWidth() * scale), (int) (focusPiece.getCurrentHeight() * scale));
+      repaintRectangleScaled(focusPiece.getDrawBounds());
     }
+    return focusPiece;
   }
 
   private void dragPiece(MouseEvent e) {
@@ -329,18 +443,26 @@ public class JigsawPiecesPanel extends JPanel {
     int jigsawX = (int) (e.getX() / scale);
     int jigsawY = (int) (e.getY() / scale);
 
-    int prevX = focusPiece.getPuzzleX();
-    int prevY = focusPiece.getPuzzleY();
-    int prevW = focusPiece.getCurrentWidth();
-    int prevH = focusPiece.getCurrentHeight();
+    Rectangle prev = focusPiece.getDrawBounds();
     focusPiece.moveTo(jigsawX - transX, jigsawY - transY);
+    focusPiece.setCurrentPosition(jigsawX - transX, jigsawY - transY);
     // Repaint the focusPiece' previous and current bounding rects.
-    repaint(0, (int) (prevX * scale), (int) (prevY * scale), (int) (prevW * scale) + 1, (int) (prevH * scale) + 1);
-    repaint(0L, (int) (focusPiece.getPuzzleX() * scale), (int) (focusPiece.getPuzzleY() * scale),
-        (int) (focusPiece.getCurrentWidth() * scale), (int) (focusPiece.getCurrentHeight() * scale));
+    repaintRectangleScaled(prev);
+    repaintRectangleScaled(focusPiece.getDrawBounds());
+  }
+
+  private void repaintRectangleScaled(Rectangle rect) {
+    int x = Math.min(rect.x, rect.x + rect.width);
+    int y = Math.min(rect.y, rect.y + rect.height);
+    int width = Math.abs(rect.width);
+    int height = Math.abs(rect.height);
+
+    repaint(0, (int) (x * scale), (int) (y * scale), (int) ((width + 1) * scale), (int) ((height + 1) * scale));
   }
 
   private void releasePiece() {
+    selection.clear();
+    repaint();
     if (focusPiece == null) {
       return;
     }
@@ -348,49 +470,77 @@ public class JigsawPiecesPanel extends JPanel {
     if (newPiece != null) {
       // Joined pieces may be of any size and number. Mouse release isn't
       // a terribly frequent event, so just repaint the whole thing.
-      repaint();
       focusPiece = newPiece;
       pieceJoined(focusPiece);
+    }
+    else {
+      // no piece joined. then add the current piece to the selected set
+      selection.add(focusPiece);
     }
   }
 
   protected void pieceJoined(Piece focusPiece) {
   }
 
-  private void startClearRect(MouseEvent e) {
-    clearX0 = (int) (e.getX() / scale);
-    clearY0 = (int) (e.getY() / scale);
+  private void dragSelectionRect(MouseEvent e) {
+    // repaint (clear) old selection rectangle
+    repaintRectangleScaled(selectionRectangle);
+
+    // calculate new selection rectangle
+    int x1 = (int) (e.getX() / scale);
+    int y1 = (int) (e.getY() / scale);
+
+    selectionRectangle.width = x1 - selectionRectangle.x;
+    selectionRectangle.height = y1 - selectionRectangle.y;
+
+    // repaint new selection rectangle
+    repaintRectangleScaled(selectionRectangle);
   }
 
-  private void dragClearRect(MouseEvent e) {
-    int prevX1 = clearX1;
-    int prevY1 = clearY1;
-    clearX1 = (int) (e.getX() / scale);
-    clearY1 = (int) (e.getY() / scale);
-    int x = Math.min(clearX0, prevX1);
-    int y = Math.min(clearY0, prevY1);
-    int w = Math.abs(clearX0 - prevX1);
-    int h = Math.abs(clearY0 - prevY1);
-    repaint(0, x, y, w, h);
-    x = Math.min(clearX0, clearX1);
-    y = Math.min(clearY0, clearY1);
-    w = Math.abs(clearX0 - clearX1);
-    h = Math.abs(clearY0 - clearY1);
-    repaint(0, x, y, w, h);
+  private void moveSelectionRect(MouseEvent e) {
+    // repaint (clear) old selection rectangle
+    repaintRectangleScaled(selectionRectangle);
+
+    // calculate new position in puzzle coordinate system
+    int x1 = (int) (e.getX() / scale);
+    int y1 = (int) (e.getY() / scale);
+
+
+    // calculate delta the rectangle was moved since the start of the drag
+    int startDeltaX = selectionRectangle.x - dragAnchor.x;
+    int startDeltaY = selectionRectangle.y - dragAnchor.y;
+
+    // calculate how much the rectangle should be moved since the start of the drag.
+    int dragDeltaX = x1 - dragStart.x;
+    int dragDeltaY = y1 - dragStart.y;
+
+    // revert the already moved delta and add the new delta
+    int deltaX = dragDeltaX - startDeltaX;
+    int deltaY = dragDeltaY - startDeltaY;
+
+    // move rectangle...
+    selectionRectangle.x += deltaX;
+    selectionRectangle.y += deltaY;
+    // ...  and pieces
+    piecesInSelectionRectangle.moveBy(deltaX, deltaY, true);
+
+    // repaint new selection rectangle
+    repaintRectangleScaled(selectionRectangle);
   }
 
-  private void finishClearRect(MouseEvent e) {
-    clearX1 = (int) (e.getX() * scale);
-    clearY1 = (int) (e.getY() * scale);
-    int cx0 = Math.max(0, Math.min(clearX0, clearX1));
-    int cy0 = Math.max(0, Math.min(clearY0, clearY1));
-    int cx1 = Math.min(getWidth(), Math.max(clearX0, clearX1));
-    int cy1 = Math.min(getHeight(), Math.max(clearY0, clearY1));
-    for (Piece piece : piecesBin.getPieces()) {
-      if (intersects(piece, cx0, cy0, cx1, cy1)) {
-        shuffle(piece, cx0, cy0, cx1, cy1);
-      }
-    }
+
+  private void finishSelectionRect(MouseEvent e) {
+    // normalize selection rect (width and height > 0)
+    int x = Math.min(selectionRectangle.x, selectionRectangle.x + selectionRectangle.width);
+    int y = Math.min(selectionRectangle.y, selectionRectangle.y + selectionRectangle.height);
+    int width = Math.abs(selectionRectangle.width);
+    int height = Math.abs(selectionRectangle.height);
+    selectionRectangle.x = x;
+    selectionRectangle.y = y;
+    selectionRectangle.width = width;
+    selectionRectangle.height = height;
+
+    // todo: show selection rectangle menu
     repaint();
   }
 
@@ -414,118 +564,43 @@ public class JigsawPiecesPanel extends JPanel {
   }
 
 
-  /**
-   * Shuffle piece randomly, but keeping it out of the rectangle defined
-   * by the given points.
-   * (x1,y1) guaranteed to be SE of (x0,y0)
-   */
-  private void shuffle(Piece piece, int x0, int y0, int x1, int y1) {
-    // Make the rectangle denoting where the Piece could be placed in the
-    // whole panel.  Top point will be (0,0).
-    int w = getWidth() - piece.getCurrentWidth();
-    int h = getHeight() - piece.getCurrentHeight();
-    // If w or h is negative, the piece is too big to be shuffled, so quit.
-    if (w < 0 || h < 0) {
-      return;
-    }
-
-    // Define the endpoints of the rectangle the Piece must avoid.
-    int ax = Math.max(0, x0 - piece.getCurrentWidth());
-    int ay = Math.max(0, y0 - piece.getCurrentHeight());
-    // int aw = x1 - ax;
-    int ah = y1 - ay;
-
-    // Now define four rectangles forming the shape where the NW piece
-    // corner could go.  I'll use BorderLayout rectangles as a guide.
-
-    // FIXME we could calculate the areas directly and only create
-    // the one rectangle we need for the shuffle call, or even not
-    // create any rectangles as we only need the height and width
-    Rectangle north = (ay == 0) ? emptyRect :
-        new Rectangle(0, 0, w, ay);
-    Rectangle south = (y1 >= h) ? emptyRect :
-        new Rectangle(0, y1 + 1, w, h - y1);
-    Rectangle west = (ax == 0 || ah == 0) ? emptyRect :
-        new Rectangle(0, ay, ax, ah);
-    Rectangle east = (x1 >= w || ah == 0) ? emptyRect :
-        new Rectangle(x1, ay, w - x1, ah);
-
-    int nArea = north.width * north.height;
-    int sArea = south.width * south.height;
-    int wArea = west.width * west.height;
-    int eArea = east.width * east.height;
-    int totalArea = nArea + sArea + wArea + eArea;
-
-    int rand = (int) (Math.random() * totalArea);
-
-    rand -= nArea;
-    if (rand < 0) {
-      shuffle(piece, north);
-      return;
-    }
-    rand -= sArea;
-    if (rand < 0) {
-      shuffle(piece, south);
-      return;
-    }
-    rand -= wArea;
-    if (rand < 0) {
-      shuffle(piece, west);
-      return;
-    }
-    shuffle(piece, east);
-  }
-
-  private void shuffle(Piece piece, Rectangle rect) {
-    int dx = (int) (Math.random() * rect.width);
-    int dy = (int) (Math.random() * rect.height);
-    piece.moveTo(rect.x + dx, rect.y + dy);
-  }
-
   // Keyboard event handling ----------------------------------------------
 
   void keyTyped0(KeyEvent e) {
     char ch = Character.toUpperCase(e.getKeyChar());
-    if (ch == PREV_BG) {
-      prevBackground();
-    } else if (ch == NEXT_BG) {
-      nextBackground();
-    } else if (ch == SCALE_IN) {
-      updateScale(scale * 1.5f);
-    } else if (ch == SCALE_OUT) {
-      updateScale(scale / 1.5f);
+    switch (ch) {
+      case PREV_BG:
+        prevBackground();
+        break;
+      case NEXT_BG:
+        nextBackground();
+        break;
+      case SCALE_IN:
+        updateScale(scale * 1.5f);
+        break;
+      case SCALE_OUT:
+        updateScale(scale / 1.5f);
+        break;
+      case SHUFFLE:
+        shuffle();
+        break;
+      case ROTATE_LEFT:
+      case KeyEvent.VK_LEFT:
+        rotatePiece(270);
+        break;
+      case ROTATE_RIGHT:
+      case KeyEvent.VK_RIGHT:
+        rotatePiece(90);
+        break;
+      case PUSH:
+        push();
+        break;
     }
-    if (piecesBin == null) {
-      return;
     }
-    if (ch == ROTATE_LEFT) {
-      rotatePiece(270);
-    } else if (ch == ROTATE_RIGHT) {
-      rotatePiece(90);
-    } else if (ch == SHUFFLE) {
-      shuffle();
-    } else if (ch == PUSH) {
-      push();
-    } else if (ch == CLEAR) {
-      toggleClearMode();
-    }
-  }
 
   private void updateScale(float newScale) {
     scale = newScale;
-    revalidate();
-  }
-
-  void keyPressed0(KeyEvent e) {
-    if (piecesBin != null) {
-      if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_KP_LEFT) {
-        rotatePiece(270);
-      } else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyCode() == KeyEvent.VK_KP_RIGHT) {
-        rotatePiece(90);
-      } else if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_KP_DOWN) {
-        push();
-      }
-    }
+    repaint();
   }
 
   private void rotatePiece(int amount) {
@@ -534,21 +609,18 @@ public class JigsawPiecesPanel extends JPanel {
     }
     int newRotation = focusPiece.getRotation() + amount;
     newRotation %= 360;
-    int prevW = focusPiece.getCurrentWidth();
-    int prevH = focusPiece.getCurrentHeight();
-    int prevX = focusPiece.getPuzzleX();
-    int prevY = focusPiece.getPuzzleY();
+    Rectangle prev = focusPiece.getDrawBounds();
     focusPiece.setRotation(newRotation);
     // Make the piece appear to rotate about its center.
     // ### Feature: When the mouse is down, rotate about the cursor instead
     //   of the center.
     int currW = focusPiece.getCurrentWidth();
     int currH = focusPiece.getCurrentHeight();
-    int currX = prevX + (prevW - currW) / 2;
-    int currY = prevY + (prevH - currH) / 2;
+    int currX = prev.x + (prev.width - currW) / 2;
+    int currY = prev.y + (prev.height - currH) / 2;
     focusPiece.moveTo(currX, currY);
-    repaint(0, (int) (prevX * scale), (int) (prevY * scale), (int) (prevW * scale), (int) (prevH * scale));
-    repaint(0, (int) (currX * scale), (int) (currY * scale), (int) (currW * scale), (int) (currH * scale));
+    repaintRectangleScaled(prev);
+    repaintRectangleScaled(focusPiece.getDrawBounds());
   }
 
   private void prevBackground() {
@@ -569,13 +641,6 @@ public class JigsawPiecesPanel extends JPanel {
     setBackground(bgColors[bgColor]);
     setClearColor();
     repaint();
-  }
-
-  private void toggleClearMode() {
-    // can't toggle clear mode while dragging
-    if (!mouseDown) {
-      setClearMode(!clearMode);
-    }
   }
 
   private void setClearColor() {
@@ -605,4 +670,73 @@ public class JigsawPiecesPanel extends JPanel {
   }
 
 
+  protected void stack() {
+    if (selectionRectangle == null) {
+      return;
+    }
+    int centerX = selectionRectangle.x + selectionRectangle.width / 2;
+    int centerY = selectionRectangle.y + selectionRectangle.height / 2;
+    PieceSet selected = piecesBin.getPiecesInRect(selectionRectangle);
+    selected.stack(new Point(centerX, centerY));
+    animateAllToPuzzlePositions(500);
+    repaint();
+  }
+
+  private void timerAction(ActionEvent e) { // ~60fps
+    long currentTime = System.currentTimeMillis();
+    boolean needsRepaint = false;
+    boolean anyAnimationsRunning = false;
+
+    // Process all animating pieces
+    Iterator<Piece> iterator = animatingPieces.iterator();
+    while (iterator.hasNext()) {
+      Piece piece = iterator.next();
+      AnimationData data = animationDataMap.get(piece);
+
+      long elapsed = currentTime - data.startTime;
+      float progress = Math.min(1f, (float) elapsed / data.duration);
+
+      // Apply easing function (quadratic ease-out)
+      progress = easeOut(progress);
+
+      // Calculate current position
+      int currentX = (int) (data.startX + (data.endX - data.startX) * progress);
+      int currentY = (int) (data.startY + (data.endY - data.startY) * progress);
+      piece.setCurrentPosition(currentX, currentY);
+
+      needsRepaint = true;
+
+      if (progress >= 1f) {
+        // Animation complete
+        iterator.remove();
+        animationDataMap.remove(piece);
+      } else {
+        anyAnimationsRunning = true;
+      }
+    }
+
+    if (needsRepaint) {
+      repaint();
+    }
+
+    if (!anyAnimationsRunning) {
+      animationTimer.stop();
+    }
+  }
+
+  private static class AnimationData {
+    final int startX, startY;
+    final int endX, endY;
+    final long startTime;
+    final long duration;
+
+    AnimationData(int startX, int startY, int endX, int endY, long duration) {
+      this.startX = startX;
+      this.startY = startY;
+      this.endX = endX;
+      this.endY = endY;
+      this.duration = duration;
+      this.startTime = System.currentTimeMillis();
+    }
+  }
 }
