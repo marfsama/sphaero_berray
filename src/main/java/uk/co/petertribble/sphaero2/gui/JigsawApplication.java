@@ -11,23 +11,23 @@ import com.berray.math.Rect;
 import com.berray.math.Vec2;
 import com.berray.math.Vec3;
 import com.raylib.Raylib;
-import org.bytedeco.javacpp.FloatPointer;
 import uk.co.petertribble.sphaero2.JigUtil;
 import uk.co.petertribble.sphaero2.cutter.ClassicCutter;
 import uk.co.petertribble.sphaero2.model.Jigsaw;
 import uk.co.petertribble.sphaero2.model.JigsawParam;
 import uk.co.petertribble.sphaero2.model.Piece;
+import uk.co.petertribble.sphaero2.model.PiecesBin;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.berray.objects.core.Label.label;
 import static com.berray.objects.guiold.panel.PanelBuilder.makePanel;
@@ -48,7 +48,7 @@ public class JigsawApplication extends BerrayApplication implements CoreAssetSho
     params.setFilename(new File(imagePath));
     params.setPieces(200);
     params.setCutter(new ClassicCutter());
-    Jigsaw jigsaw = new Jigsaw(params, sourceImage);
+    Jigsaw jigsaw = new Jigsaw(params, sourceImage, new PiecesBin(new AtomicInteger(1), "main"));
     System.out.println("cutting...");
     jigsaw.reset(true, width(), height());
 

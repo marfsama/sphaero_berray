@@ -63,7 +63,9 @@ public class Piece {
   /** Highlight layer. */
   protected int highlightWidth;
   protected int highlightHeight;
-  protected int highlightSize = 10;
+  protected int outlineSize = 3;
+  protected int shadowOffsetX = 6;
+  protected int shadowOffsetY = 6;
   private int[] highlightData;
 
   // Location in the image.
@@ -91,6 +93,11 @@ public class Piece {
   // Current position (for animation)
   private int currentX;
   private int currentY;
+  public long currentDataDuration;
+  public long bevelDuration;
+  public long highlightDuration;
+  public long imageDuration;
+  public long highlightImageDuration;
 
   /**
    * Creates a new Piece.  No initial rotation is done.  (This is needed
@@ -356,7 +363,9 @@ public class Piece {
 
   /** Returns the bounds of the drawn stuff. */
   public Rectangle getDrawBounds() {
-    return new Rectangle(puzzleX - highlightSize, puzzleY - highlightSize, curWidth + highlightSize * 2, curHeight + highlightSize * 2);
+    return new Rectangle(currentX - outlineSize - (shadowOffsetX < 0 ? -shadowOffsetX : 0),
+            currentY - outlineSize - (shadowOffsetY < 0 ? -shadowOffsetY : 0),
+            highlightWidth, highlightHeight);
   }
 
   public int getCurrentX() {
@@ -476,7 +485,8 @@ public class Piece {
    */
   public void drawHighlight(Graphics g, int x, int y) {
     if (hightlightImage != null) {
-      g.drawImage(hightlightImage, x - highlightSize, y - highlightSize, null);
+      g.drawImage(hightlightImage, x - outlineSize - (shadowOffsetX < 0 ? -shadowOffsetX : 0),
+              y - outlineSize - (shadowOffsetY < 0 ? -shadowOffsetY : 0), null);
     }
   }
 
@@ -615,6 +625,9 @@ public class Piece {
    */
   public void recomputeImageData() {
     setRotatedPosition();
+
+    long startTime = System.currentTimeMillis();
+
     if (rotation == 0) {
       curData = origData.clone();
     } else if (rotation == 90) {
@@ -646,13 +659,43 @@ public class Piece {
         }
       }
     }
-    curData = BevelUtil.bevel(curData, curWidth, curHeight, 5);
-    highlightData = BevelUtil.glow(curData, curWidth, curHeight, highlightSize, 0x40FFFF00);
-    highlightWidth = curWidth + highlightSize * 2;
-    highlightHeight = curHeight + highlightSize * 2;
-    image = Toolkit.getDefaultToolkit().createImage(
-        new MemoryImageSource(curWidth, curHeight, curData, 0, curWidth));
-    hightlightImage = Toolkit.getDefaultToolkit().createImage(
-            new MemoryImageSource(highlightWidth, highlightHeight, highlightData, 0, highlightWidth));
+    long currentDataTime = System.currentTimeMillis();
+    curData = BevelUtil.bevel(curData, curWidth, curHeight,5);
+    long bevelTime = System.currentTimeMillis();
+    //highlightData = BevelUtil.glow(curData, curWidth, curHeight, highlightSize, 0x40FFFF00);
+    highlightData = BevelUtil.createOutlineAndShadowOverlay(
+            curData, curWidth, curHeight,
+            outlineSize, 0x80FF0000, // 3px red outline (50% alpha)
+            shadowOffsetX, shadowOffsetY, 0x80000000 // 2px offset black shadow (25% alpha)
+    );
+    long highlightTime = System.currentTimeMillis();
+    highlightWidth = curWidth +  Math.abs(shadowOffsetX) + outlineSize * 2;;
+    highlightHeight = curHeight + Math.abs(shadowOffsetY) + outlineSize * 2;;
+    image = Toolkit.getDefaultToolkit().createImage(new MemoryImageSource(curWidth, curHeight, curData, 0, curWidth));
+    long imageTime = System.currentTimeMillis();
+    hightlightImage = Toolkit.getDefaultToolkit().createImage(new MemoryImageSource(highlightWidth, highlightHeight, highlightData, 0, highlightWidth));
+    long highlightImageTime = System.currentTimeMillis();
+
+    this.currentDataDuration = currentDataTime - startTime;
+    this.bevelDuration = bevelTime - currentDataTime;
+    this.highlightDuration = highlightTime - bevelTime;
+    this.imageDuration = imageTime - highlightTime;
+    this.highlightImageDuration = highlightImageTime - imageTime;
+  }
+
+  public Image getHightlightImage() {
+    return hightlightImage;
+  }
+
+  public int[] getCurData() {
+    return curData;
+  }
+
+  public int[] getOrigData() {
+    return origData;
+  }
+
+  public int[] getHighlightData() {
+    return highlightData;
   }
 }

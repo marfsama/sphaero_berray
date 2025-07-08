@@ -99,6 +99,28 @@ public class PieceSet implements Iterable<Piece> {
     return new Vec2(x / pieces.size(), y / pieces.size());
   }
 
+  public Point getCenterPoint() {
+    int x = 0;
+    int y = 0;
+    for (Piece piece : pieces) {
+      x += piece.getPuzzleX();
+      y += piece.getPuzzleY();
+    }
+    return new Point(x / pieces.size(), y / pieces.size());
+  }
+
+  public Rectangle getBounds() {
+    if (pieces.isEmpty()) {
+      return new Rectangle();
+    }
+    Rectangle bounds = pieces.iterator().next().getBounds();
+    for (Piece piece : pieces) {
+      bounds = bounds.union(piece.getBounds());
+    }
+    return bounds;
+  }
+
+
   public void stack(Vec2 center) {
     for (Piece piece : pieces) {
       piece.moveTo((int) center.getX(), (int) center.getY());
@@ -114,5 +136,13 @@ public class PieceSet implements Iterable<Piece> {
 
   public void addAll(Iterable<Piece> others) {
     others.forEach(pieces::add);
+  }
+
+  public void toggle(Piece piece) {
+    if (pieces.contains(piece)) {
+      pieces.remove(piece);
+    } else {
+      pieces.add(piece);
+    }
   }
 }

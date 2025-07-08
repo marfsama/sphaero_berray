@@ -1,8 +1,7 @@
 package uk.co.petertribble.sphaero2.cutter;
 
 import uk.co.petertribble.sphaero2.model.Piece;
-
-import java.util.List;
+import uk.co.petertribble.sphaero2.model.PiecesBin;
 
 /** Callback listener so interested parties can watch the progress of the cutter. */
 public interface CutterStatusListener {
@@ -14,6 +13,6 @@ public interface CutterStatusListener {
     void ejectPiece(Piece piece);
 
     /** Called when the cutting is finished. */
-    void done(List<Piece> pieces);
+    void done(PiecesBin pieces);
 
 }

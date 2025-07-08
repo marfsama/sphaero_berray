@@ -1,4 +1,4 @@
-package uk.co.petertribble.sphaero2.components.select;
+package uk.co.petertribble.sphaero2.components.select.resume;
 
 import uk.co.petertribble.sphaero2.components.ImagePanel;
 

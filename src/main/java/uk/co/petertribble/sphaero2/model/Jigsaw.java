@@ -6,12 +6,9 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class Jigsaw {
-
-  private AtomicInteger idProvider = new AtomicInteger();
 
   private final JigsawParam params;
   private final BufferedImage image;
@@ -20,10 +17,10 @@ public class Jigsaw {
   private PiecesBin pieces;
   private boolean finished;
 
-  public Jigsaw(JigsawParam params, BufferedImage image) {
+  public Jigsaw(JigsawParam params, BufferedImage image, PiecesBin pieces) {
     this.image = image;
     this.params = params;
-    this.pieces = new PiecesBin(idProvider, "main");
+    this.pieces = pieces;
   }
 
   public JigsawParam getParams() {
@@ -98,12 +95,5 @@ public class Jigsaw {
     if (shuffle) {
       shuffle(width, height);
     }
-  }
-
-  /**
-   * Push the top piece (at the front) to the bottom (the back).
-   */
-  public void push() {
-    pieces.push();
   }
 }

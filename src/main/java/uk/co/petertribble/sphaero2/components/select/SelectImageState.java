@@ -3,9 +3,11 @@ package uk.co.petertribble.sphaero2.components.select;
 import uk.co.petertribble.sphaero2.components.GameState;
 import uk.co.petertribble.sphaero2.components.GameStateContext;
 import uk.co.petertribble.sphaero2.components.cut.CuttingState;
+import uk.co.petertribble.sphaero2.components.load.LoadingState;
 
 import javax.swing.*;
 import java.awt.*;
+import java.nio.file.Path;
 
 public class SelectImageState implements GameState {
     private SelectImagePanel panel;
@@ -16,8 +18,12 @@ public class SelectImageState implements GameState {
         panel = new SelectImagePanel();
         panel.setJigsawParams(context.getJigsawParam());
         panel.setStartListener(e -> {
-            context.setJigsawParam(panel.getJigsawParams());
-            context.changeState(new CuttingState());
+            if (e.getID() == 1) {
+                context.setJigsawParam(panel.getJigsawParams());
+                context.changeState(new CuttingState());
+            } else if (e.getID() == 2) {
+                context.changeState(new LoadingState(Path.of(e.getActionCommand())));
+            }
         });
         panel.setMaximumSize(new Dimension(1000, 1000));
         panel.setMinimumSize(new Dimension(1000, 1000));

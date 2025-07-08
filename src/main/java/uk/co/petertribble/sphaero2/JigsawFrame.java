@@ -15,6 +15,7 @@ import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * JFrame that runs a JigsawPuzzle. This is the front end for
@@ -116,7 +117,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     JigsawParam params = new JigsawParam();
     params.setCutter(cutter);
     params.setPieces(pieces);
-    Jigsaw jigsaw = new Jigsaw(params, image);
+    Jigsaw jigsaw = new Jigsaw(params, image, new PiecesBin(new AtomicInteger(1), "main"));
 
     init(jigsaw, true);
   }
@@ -254,7 +255,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
     JToolBar toolbar = new JToolBar();
 
     toolbar.add(new JToggleButton(new ToolbarAction("toggleSelection")));
-    toolbar.add(new JButton(new ToolbarAction("stack", () -> puzzle.stack())));
+    toolbar.add(new JButton(new ToolbarAction("stack", (e) -> puzzle.stack())));
     toolbar.add(new JButton(new ToolbarAction("disperse")));
     toolbar.add(new JButton(new ToolbarAction("clear")));
     toolbar.add(new JButton(new ToolbarAction("shuffle")));
@@ -314,7 +315,7 @@ public class JigsawFrame extends JFrame implements ActionListener {
       if (rectangle != null) {
         image = image.getSubimage(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
       }
-      init(new Jigsaw(params, JigUtil.resizeImage(image)), true);
+      init(new Jigsaw(params, JigUtil.resizeImage(image), new PiecesBin(new AtomicInteger(1), "main")), true);
     } catch (IOException e) {
       JOptionPane.showMessageDialog(this, "Image file cannot be read.", "Invalid Image", JOptionPane.ERROR_MESSAGE);
     }

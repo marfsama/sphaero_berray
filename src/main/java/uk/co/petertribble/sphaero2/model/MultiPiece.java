@@ -1,5 +1,6 @@
 package uk.co.petertribble.sphaero2.model;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -254,5 +255,15 @@ public class MultiPiece extends Piece {
       overlay(data, rotX, rotY, curWidth, curHeight, sub);
     }
     curData = data;
+  }
+
+
+  @Override
+  public Rectangle getDrawBounds() {
+    int highlightWidth = curWidth +  Math.abs(shadowOffsetX) + outlineSize * 2;;
+    int highlightHeight = curHeight + Math.abs(shadowOffsetY) + outlineSize * 2;;
+    return new Rectangle(getPuzzleX() - outlineSize - (shadowOffsetX < 0 ? -shadowOffsetX : 0),
+            getPuzzleY() - outlineSize - (shadowOffsetY < 0 ? -shadowOffsetY : 0),
+            highlightWidth, highlightHeight);
   }
 }

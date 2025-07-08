@@ -1,4 +1,4 @@
-package uk.co.petertribble.sphaero2.components.select;
+package uk.co.petertribble.sphaero2.components.select.resume;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -7,17 +7,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class JigsawResumePanel extends JPanel implements ActionListener {
+public class JigsawResumeListPanel extends JPanel implements ActionListener {
   private Path folder;
   private ActionListener actionListener;
 
-  public JigsawResumePanel(Path folder) {
+  public JigsawResumeListPanel(Path folder) {
     this.folder = folder;
     initComponents();
   }
 
   private void initComponents() {
     setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+    if (!Files.exists(folder)) {
+      return;
+    }
     try {
       Files.list(folder)
           .filter(Files::isDirectory)
@@ -31,8 +34,8 @@ public class JigsawResumePanel extends JPanel implements ActionListener {
           )
           .forEach(path -> {
             try {
-              JigsawResumeJigsawPanel comp = new JigsawResumeJigsawPanel(path);
-              comp.addActionListener(JigsawResumePanel.this);
+              JigsawResumeItemPanel comp = new JigsawResumeItemPanel(path);
+              comp.addActionListener(JigsawResumeListPanel.this);
               add(comp);
             } catch (Exception e) {
               e.printStackTrace();

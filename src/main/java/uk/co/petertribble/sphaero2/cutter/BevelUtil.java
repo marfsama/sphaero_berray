@@ -17,7 +17,7 @@ public class BevelUtil {
      * central pixel.  If it's the other way around, darken it.  If both or
      * neither are transparent, leave it alone.
      */
-    public static void bevel(int[] data, int width, int height) {
+    public static int[] bevel(int[] data, int width, int height) {
         // Scan diagonal NW-SE lines.  The first and last lines can be skipped.
         // moved these out of the loop
         boolean nw; // true iff that pixel is opaque
@@ -48,6 +48,7 @@ public class BevelUtil {
                 y++;
             }
         }
+        return data;
     }
 
     private static int brighter(int val) {
@@ -252,5 +253,87 @@ public class BevelUtil {
         }
 
         return blurredMask;
+    }
+
+    public static int[] createOutlineAndShadowOverlay(int[] originalData, int originalWidth, int originalHeight,
+                                                      int outlineSize, int outlineColor,
+                                                      int shadowOffsetX, int shadowOffsetY, int shadowColor) {
+
+        // Calculate new dimensions (expanded for outline and shadow)
+        int expandedWidth = originalWidth + Math.abs(shadowOffsetX) + outlineSize * 2;
+        int expandedHeight = originalHeight + Math.abs(shadowOffsetY) + outlineSize * 2;
+
+        // Create expanded overlay (initially transparent)
+        int[] overlay = new int[expandedWidth * expandedHeight];
+
+        // Calculate offset to center the original image in the expanded overlay
+        int offsetX = outlineSize + (shadowOffsetX < 0 ? -shadowOffsetX : 0);
+        int offsetY = outlineSize + (shadowOffsetY < 0 ? -shadowOffsetY : 0);
+
+        // First pass: Generate shadow
+        for (int y = 0; y < originalHeight; y++) {
+            for (int x = 0; x < originalWidth; x++) {
+                if ((originalData[y * originalWidth + x] & 0xFF000000) != 0) { // If pixel is opaque
+                    int shadowX = offsetX + x + shadowOffsetX;
+                    int shadowY = offsetY + y + shadowOffsetY;
+
+                    if (shadowX >= 0 && shadowX < expandedWidth &&
+                            shadowY >= 0 && shadowY < expandedHeight) {
+                        overlay[shadowY * expandedWidth + shadowX] = shadowColor;
+                    }
+                }
+            }
+        }
+
+        // Second pass: Generate outline
+        for (int y = 0; y < originalHeight; y++) {
+            for (int x = 0; x < originalWidth; x++) {
+                if ((originalData[y * originalWidth + x] & 0xFF000000) != 0) { // If pixel is opaque
+                    // Check all neighboring pixels within outlineSize
+                    for (int dy = -outlineSize; dy <= outlineSize; dy++) {
+                        for (int dx = -outlineSize; dx <= outlineSize; dx++) {
+                            if (dx != 0 || dy != 0) { // Skip the center pixel
+                                int nx = offsetX + x + dx;
+                                int ny = offsetY + y + dy;
+
+                                // Only draw outline where there's no original pixel
+                                if (nx >= 0 && nx < expandedWidth &&
+                                        ny >= 0 && ny < expandedHeight) {
+
+                                    // Check if this would be outside original shape
+                                    int origX = x + dx;
+                                    int origY = y + dy;
+                                    boolean isOutsideOriginal =
+                                            origX < 0 || origX >= originalWidth ||
+                                                    origY < 0 || origY >= originalHeight ||
+                                                    (originalData[origY * originalWidth + origX] & 0xFF000000) == 0;
+
+                                    if (isOutsideOriginal) {
+                                        // Blend outline color with existing shadow
+                                        overlay[ny * expandedWidth + nx] = blend(overlay[ny * expandedWidth + nx], outlineColor);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return overlay;
+    }
+
+    private static int blend(int bg, int fg) {
+        int a = (fg >>> 24);
+        if (a == 0) return bg;
+        if (a == 255) return fg;
+
+        int bgA = (bg >>> 24);
+        int r = ((fg & 0xFF0000) * a + (bg & 0xFF0000) * bgA * (255 - a) / 255) / 255;
+        int g = ((fg & 0x00FF00) * a + (bg & 0x00FF00) * bgA * (255 - a) / 255) / 255;
+        int b = ((fg & 0x0000FF) * a + (bg & 0x0000FF) * bgA * (255 - a) / 255) / 255;
+        int newA = a + (bgA * (255 - a) / 255);
+
+        return (newA << 24) | (r & 0xFF0000) | (g & 0x00FF00) | (b & 0x0000FF);
     }
 }

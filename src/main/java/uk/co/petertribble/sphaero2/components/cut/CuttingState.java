@@ -7,11 +7,13 @@ import uk.co.petertribble.sphaero2.cutter.CutterStatusListener;
 import uk.co.petertribble.sphaero2.cutter.JigsawCutter;
 import uk.co.petertribble.sphaero2.model.JigsawParam;
 import uk.co.petertribble.sphaero2.model.Piece;
+import uk.co.petertribble.sphaero2.model.PiecesBin;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CuttingState implements GameState {
     private CuttingPanel panel;
@@ -41,6 +44,7 @@ public class CuttingState implements GameState {
             //BufferedImage resizedImage = JigUtil.resizeImage(image);
             BufferedImage resizedImage = image;
             context.setImage(resizedImage);
+            System.out.println("ImageSize: "+getImageSize(resizedImage));
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Image file cannot be read.", "Invalid Image", JOptionPane.ERROR_MESSAGE);
         }
@@ -52,8 +56,19 @@ public class CuttingState implements GameState {
         cutter.setStatusListener(statusListener);
 
         new Thread(() -> {
-            statusListener.done(new ArrayList<>(Arrays.asList(cutter.cut(context.getImage()))));
+            List<Piece> pieces1 = new ArrayList<>(Arrays.asList(cutter.cut(context.getImage())));
+
+            PiecesBin piecesBin = new PiecesBin(new AtomicInteger(1), "");
+            piecesBin.setPieces(pieces1);
+            piecesBin.shuffle(new Rectangle(0, 0, piecesBin.getWidth(), piecesBin.getHeight()), true);
+
+            statusListener.done(piecesBin);
         }).start();
+    }
+
+    private int getImageSize(BufferedImage image) {
+        DataBuffer buff = image.getRaster().getDataBuffer();
+        return buff.getSize() * DataBuffer.getDataTypeSize(buff.getDataType()) / 8;
     }
 
     @Override
@@ -112,10 +127,25 @@ public class CuttingState implements GameState {
         }
 
         @Override
-        public void done(List<Piece> pieces) {
+        public void done(PiecesBin pieces) {
             done = true;
             context.setPieces(pieces);
             context.changeState(new PlayState());
+
+            long imageSize = 0;
+            long highlightSize = 0;
+            long currentSize = 0;
+            // count memory usage of pieces
+            for (Piece piece : pieces.getPieces()) {
+                imageSize += piece.getOrigData().length*4L;
+                currentSize += piece.getCurData().length*4L;
+                highlightSize += piece.getHighlightData().length*4L;
+            }
+            System.out.println("memory usages:");
+            System.out.println("image size: "+imageSize);
+            System.out.println("highlightSize: "+highlightSize);
+            System.out.println("currentSize: "+currentSize);
+            System.out.println("total memory: "+(imageSize+highlightSize+currentSize));
         }
     }
 }

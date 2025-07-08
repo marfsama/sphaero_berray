@@ -192,6 +192,10 @@ public class PiecesBin {
     }
   }
 
+  public void shuffle(Rectangle destination, boolean randomizeRotation) {
+    shuffle(new Rect(destination.x, destination.y, destination.width, destination.height), randomizeRotation);
+  }
+
   public void shuffle(Rect destination, boolean randomizeRotation) {
     List<Piece> piecesToShuffle = new ArrayList<>();
     List<Piece> remainingPieces = new ArrayList<>();
@@ -216,12 +220,16 @@ public class PiecesBin {
 
   /**
    * Push the top piece (at the front) to the bottom (the back).
+   *
+   * @return the pushed piece or null if the bin is empty.
    */
-  public void push() {
+  public Piece push() {
     if (pieces.size() > 1) {
       Piece p = pieces.remove(pieces.size() - 1);
       pieces.add(0, p);
+      return p;
     }
+    return null;
   }
 
   public void movePieceTo(Piece piece, int x, int y) {

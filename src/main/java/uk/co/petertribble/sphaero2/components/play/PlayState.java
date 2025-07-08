@@ -17,20 +17,20 @@ public class PlayState implements GameState {
 
     @Override
     public void enterState(GameStateContext context) {
-        Jigsaw jigsaw = new Jigsaw(context.getJigsawParam(), context.getImage());
-        jigsaw.getPieces().setPieces(context.getPieces());
+        Jigsaw jigsaw = new Jigsaw(context.getJigsawParam(), context.getImage(), context.getPieces());
         this.jigsawPanel = new JigsawPanel(jigsaw);
 
         this.panel = new JPanel(new BorderLayout());
-        panel.add(new JScrollPane(jigsawPanel));
+        panel.add(new JScrollPane(jigsawPanel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS));
         panel.add(createStatusBar(jigsaw), BorderLayout.SOUTH);
         panel.add(createToolBar(), BorderLayout.NORTH);
 
         jigsawPanel.setProgressLabel(progressLabel);
         jigsawPanel.setTimeLabel(timeLabel);
 
-        Dimension contentPaneSize = context.getContentPaneSize();
-        SwingUtilities.invokeLater(() -> this.jigsawPanel.shuffle(0, 0, contentPaneSize.width, contentPaneSize.height, true));
+        SwingUtilities.invokeLater(() -> {
+            this.jigsawPanel.animateAllToPuzzlePositions(500);
+        });
         jigsawPanel.addAncestorListener(new AncestorListener() {
             @Override
             public void ancestorAdded(AncestorEvent event) {
@@ -79,11 +79,11 @@ public class PlayState implements GameState {
     private JToolBar createToolBar() {
         JToolBar toolbar = new JToolBar();
 
-        toolbar.add(new JToggleButton(new ToolbarAction("toggleSelection")));
-        toolbar.add(new JButton(new ToolbarAction("stack", () -> jigsawPanel.stack())));
-        toolbar.add(new JButton(new ToolbarAction("disperse", () -> jigsawPanel.shuffleSelection())));
-        toolbar.add(new JButton(new ToolbarAction("clear", () -> jigsawPanel.clearSelection())));
-        toolbar.add(new JButton(new ToolbarAction("arrange", () -> jigsawPanel.arrange())));
+        toolbar.add(new JToggleButton(new ToolbarAction("toggleSelection", e -> jigsawPanel.setSelectionMode(((JToggleButton)e.getSource()).getModel().isSelected()))));
+        toolbar.add(new JButton(new ToolbarAction("stack", e -> jigsawPanel.stack())));
+        toolbar.add(new JButton(new ToolbarAction("disperse", e -> jigsawPanel.shuffleSelection())));
+        toolbar.add(new JButton(new ToolbarAction("clear", e -> jigsawPanel.clearSelection())));
+        toolbar.add(new JButton(new ToolbarAction("arrange", e -> jigsawPanel.arrange())));
 
         return toolbar;
     }

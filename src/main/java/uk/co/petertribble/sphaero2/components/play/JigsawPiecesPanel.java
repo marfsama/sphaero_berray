@@ -19,7 +19,8 @@ public class JigsawPiecesPanel extends JPanel {
 
   public static final char ROTATE_LEFT = 'E';
   public static final char ROTATE_RIGHT = 'R';
-  public static final char SHUFFLE = 'S';
+  public static final char STACK = 'S';
+  public static final char ARRANGE = 'A';
   // change to Next and Previous ?
   public static final char PREV_BG = 'V';
   public static final char NEXT_BG = 'B';
@@ -28,13 +29,13 @@ public class JigsawPiecesPanel extends JPanel {
   public static final char SCALE_IN = '+';
   public static final char SCALE_OUT = '-';
 
-  public float scale = 1.0f;
+  private float scale = 1.0f;
 
   /** Point where the mouse was clicked when the drag started. */
-  public Point dragStart;
+  private Point dragStart;
   /** Anchor of the thing that is dragged when the drag started. This is either the top left corner of the selection
    * rectangle or the {@link PieceSet#getAnchor() anchor}  of the {@link PieceSet}. */
-  public Point dragAnchor;
+  private Point dragAnchor;
 
   // Available background colors
   private static final Color[] bgColors = {
@@ -69,6 +70,7 @@ public class JigsawPiecesPanel extends JPanel {
 
   private DragMode dragMode = DragMode.NONE;
   private Rectangle selectionRectangle;
+  private boolean selectionEnabled = false;
 
   private Color clearColor;
 
@@ -97,6 +99,10 @@ public class JigsawPiecesPanel extends JPanel {
     setClearColor();
     addListeners();
     animationTimer = new Timer(10, this::timerAction);
+  }
+
+  public void setSelectionMode(boolean enabled) {
+    this.selectionEnabled = enabled;
   }
 
   private float easeOut(float t) {
@@ -227,8 +233,8 @@ public class JigsawPiecesPanel extends JPanel {
    * Push the top piece (at the front) to the bottom (the back).
    */
   public void push() {
-    piecesBin.push();
-    repaint();
+    Piece piece = piecesBin.push();
+    repaintRectangleScaled(piece.getDrawBounds());
   }
 
   @Override
@@ -242,12 +248,11 @@ public class JigsawPiecesPanel extends JPanel {
       return;
     }
 
-    // first draw the highlights of the selected pieces
-    for (Piece piece : selection) {
-      piece.drawHighlight(g);
-    }
 
     for (Piece piece : piecesBin.getPieces()) {
+      if (selection.contains(piece)) {
+        piece.drawHighlight(g);
+      }
       piece.draw(g);
     }
 
@@ -313,7 +318,6 @@ public class JigsawPiecesPanel extends JPanel {
     int y = (int) (e.getY() / scale);
 
     this.dragStart = new Point(x, y);
-    repaint();
 
     requestFocus();
     if (piecesBin == null) {
@@ -414,21 +418,27 @@ public class JigsawPiecesPanel extends JPanel {
       if (piece.contains(jigsawX, jigsawY)) {
         focusPiece = piece;
         // remove piece from whichever position it is currently
-        try {
-          iter.remove();
-        } catch (UnsupportedOperationException e2) {
-          System.out.println(piece.getClass());
-          e2.printStackTrace();
-        }
+        iter.remove();
       }
     }
     // if the user clicked a piece
     if (focusPiece != null) {
       // add the piece to the stack again, this time on top
       pieces.add(focusPiece);
+      System.out.println("grabPiece. selectionEnabled: "+selectionEnabled);
+      if (selectionEnabled || (e.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) == MouseEvent.SHIFT_DOWN_MASK) {
+        // add or remove a piece from the selection
+        selection.toggle(focusPiece);
+      } else {
+        // select a single piece. so clear and redraw the current selection
+        selection.forEach(piece -> repaintRectangleScaled(piece.getDrawBounds()));
+        selection.clear();
+        selection.add(focusPiece);
+      }
 
       transX = jigsawX - focusPiece.getPuzzleX();
       transY = jigsawY - focusPiece.getPuzzleY();
+      dragAnchor = selection.getAnchorPoint();
       // The focusPiece might have moved up in Z-order. At worst, we have
       // to repaint its bounding rectangle.
       repaintRectangleScaled(focusPiece.getDrawBounds());
@@ -443,12 +453,26 @@ public class JigsawPiecesPanel extends JPanel {
     int jigsawX = (int) (e.getX() / scale);
     int jigsawY = (int) (e.getY() / scale);
 
-    Rectangle prev = focusPiece.getDrawBounds();
-    focusPiece.moveTo(jigsawX - transX, jigsawY - transY);
-    focusPiece.setCurrentPosition(jigsawX - transX, jigsawY - transY);
-    // Repaint the focusPiece' previous and current bounding rects.
-    repaintRectangleScaled(prev);
-    repaintRectangleScaled(focusPiece.getDrawBounds());
+    Point currentAnchor = selection.getAnchorPoint();
+
+    // calculate how far the selection was already moved since the start of the drag
+    int startDeltaX = currentAnchor.x - dragAnchor.x;
+    int startDeltaY = currentAnchor.y - dragAnchor.y;
+
+    // calculate how much the rectangle should be moved since the start of the drag.
+    int dragDeltaX = jigsawX - dragStart.x;
+    int dragDeltaY = jigsawY - dragStart.y;
+
+    // revert the already moved delta and add the new delta
+    int deltaX = dragDeltaX - startDeltaX;
+    int deltaY = dragDeltaY - startDeltaY;
+
+    // repaint current selection
+    selection.forEach(piece -> repaintRectangleScaled(piece.getDrawBounds()));
+    // move selection to new place
+    selection.moveBy(deltaX, deltaY, true);
+    // repaint moved selection
+    selection.forEach(piece -> repaintRectangleScaled(piece.getDrawBounds()));
   }
 
   private void repaintRectangleScaled(Rectangle rect) {
@@ -461,8 +485,6 @@ public class JigsawPiecesPanel extends JPanel {
   }
 
   private void releasePiece() {
-    selection.clear();
-    repaint();
     if (focusPiece == null) {
       return;
     }
@@ -471,11 +493,10 @@ public class JigsawPiecesPanel extends JPanel {
       // Joined pieces may be of any size and number. Mouse release isn't
       // a terribly frequent event, so just repaint the whole thing.
       focusPiece = newPiece;
-      pieceJoined(focusPiece);
-    }
-    else {
-      // no piece joined. then add the current piece to the selected set
+      // when the pieces are joined, clear the selection and add the new piece as the single selected item
+      selection.clear();
       selection.add(focusPiece);
+      pieceJoined(focusPiece);
     }
   }
 
@@ -581,8 +602,11 @@ public class JigsawPiecesPanel extends JPanel {
       case SCALE_OUT:
         updateScale(scale / 1.5f);
         break;
-      case SHUFFLE:
-        shuffle();
+      case STACK:
+        stack();
+        break;
+      case ARRANGE:
+        arrange();
         break;
       case ROTATE_LEFT:
       case KeyEvent.VK_LEFT:
@@ -599,7 +623,8 @@ public class JigsawPiecesPanel extends JPanel {
     }
 
   private void updateScale(float newScale) {
-    scale = newScale;
+    setScale(newScale);
+    revalidate();
     repaint();
   }
 
@@ -671,21 +696,25 @@ public class JigsawPiecesPanel extends JPanel {
 
 
   protected void stack() {
-    if (selectionRectangle == null) {
+    if (selectionRectangle != null) {
+      int centerX = selectionRectangle.x + selectionRectangle.width / 2;
+      int centerY = selectionRectangle.y + selectionRectangle.height / 2;
+      PieceSet selected = piecesBin.getPiecesInRect(selectionRectangle);
+      selected.stack(new Point(centerX, centerY));
+      animateAllToPuzzlePositions(500);
+      repaint();
       return;
     }
-    int centerX = selectionRectangle.x + selectionRectangle.width / 2;
-    int centerY = selectionRectangle.y + selectionRectangle.height / 2;
-    PieceSet selected = piecesBin.getPiecesInRect(selectionRectangle);
-    selected.stack(new Point(centerX, centerY));
+
+    // no selection rectangle. so stack the current selection
+    selection.stack(selection.getCenterPoint());
     animateAllToPuzzlePositions(500);
-    repaint();
   }
 
   private void timerAction(ActionEvent e) { // ~60fps
     long currentTime = System.currentTimeMillis();
-    boolean needsRepaint = false;
     boolean anyAnimationsRunning = false;
+    Rectangle repaintRectangle = new Rectangle(0, 0, -1, -1);
 
     // Process all animating pieces
     Iterator<Piece> iterator = animatingPieces.iterator();
@@ -693,18 +722,24 @@ public class JigsawPiecesPanel extends JPanel {
       Piece piece = iterator.next();
       AnimationData data = animationDataMap.get(piece);
 
-      long elapsed = currentTime - data.startTime;
-      float progress = Math.min(1f, (float) elapsed / data.duration);
+      long elapsed = currentTime - data.getStartTime();
+      float progress = Math.min(1f, (float) elapsed / data.getDuration());
+
+      // repaint current position piece
+      repaintRectangle = repaintRectangle.union(piece.getDrawBounds());
 
       // Apply easing function (quadratic ease-out)
       progress = easeOut(progress);
 
       // Calculate current position
-      int currentX = (int) (data.startX + (data.endX - data.startX) * progress);
-      int currentY = (int) (data.startY + (data.endY - data.startY) * progress);
+      int currentX = (int) (data.getStartX() + (data.getEndX() - data.getStartX()) * progress);
+      int currentY = (int) (data.getStartY() + (data.getEndY() - data.getStartY()) * progress);
+
       piece.setCurrentPosition(currentX, currentY);
 
-      needsRepaint = true;
+      // repaint new position piece
+      repaintRectangle = repaintRectangle.union(piece.getDrawBounds());
+
 
       if (progress >= 1f) {
         // Animation complete
@@ -715,8 +750,8 @@ public class JigsawPiecesPanel extends JPanel {
       }
     }
 
-    if (needsRepaint) {
-      repaint();
+    if (repaintRectangle != null) {
+      repaintRectangleScaled(repaintRectangle);
     }
 
     if (!anyAnimationsRunning) {
@@ -724,19 +759,5 @@ public class JigsawPiecesPanel extends JPanel {
     }
   }
 
-  private static class AnimationData {
-    final int startX, startY;
-    final int endX, endY;
-    final long startTime;
-    final long duration;
 
-    AnimationData(int startX, int startY, int endX, int endY, long duration) {
-      this.startX = startX;
-      this.startY = startY;
-      this.endX = endX;
-      this.endY = endY;
-      this.duration = duration;
-      this.startTime = System.currentTimeMillis();
-    }
-  }
 }
