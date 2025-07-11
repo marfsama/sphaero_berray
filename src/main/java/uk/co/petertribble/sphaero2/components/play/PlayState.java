@@ -84,6 +84,7 @@ public class PlayState implements GameState {
         toolbar.add(new JButton(new ToolbarAction("disperse", e -> jigsawPanel.shuffleSelection())));
         toolbar.add(new JButton(new ToolbarAction("clear", e -> jigsawPanel.clearSelection())));
         toolbar.add(new JButton(new ToolbarAction("arrange", e -> jigsawPanel.arrange())));
+        toolbar.add(new JButton(new ToolbarAction("repaint", e -> jigsawPanel.repaintPieces())));
 
         return toolbar;
     }

@@ -64,8 +64,6 @@ public class JigsawPiecesPanel extends JPanel {
   private Dimension prefSize;
   // Translation from a piece's upper-left corner to the point you clicked
   // on.
-  private int transX;
-  private int transY;
   private int bgColor = 4;
 
   private DragMode dragMode = DragMode.NONE;
@@ -224,8 +222,15 @@ public class JigsawPiecesPanel extends JPanel {
       animateAllToPuzzlePositions(500);
       repaint();
     }
+  }
+
+  public void repaintPieces() {
+    piecesBin.getPieces().forEach(piece -> {
+      piece.setCurrentPosition(piece.getPuzzleX(), piece.getPuzzleY());
+    });
 
   }
+
 
 
 
@@ -425,7 +430,6 @@ public class JigsawPiecesPanel extends JPanel {
     if (focusPiece != null) {
       // add the piece to the stack again, this time on top
       pieces.add(focusPiece);
-      System.out.println("grabPiece. selectionEnabled: "+selectionEnabled);
       if (selectionEnabled || (e.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) == MouseEvent.SHIFT_DOWN_MASK) {
         // add or remove a piece from the selection
         selection.toggle(focusPiece);
@@ -436,8 +440,6 @@ public class JigsawPiecesPanel extends JPanel {
         selection.add(focusPiece);
       }
 
-      transX = jigsawX - focusPiece.getPuzzleX();
-      transY = jigsawY - focusPiece.getPuzzleY();
       dragAnchor = selection.getAnchorPoint();
       // The focusPiece might have moved up in Z-order. At worst, we have
       // to repaint its bounding rectangle.
@@ -561,29 +563,8 @@ public class JigsawPiecesPanel extends JPanel {
     selectionRectangle.width = width;
     selectionRectangle.height = height;
 
-    // todo: show selection rectangle menu
     repaint();
   }
-
-
-  /**
-   * Return whether the piece intersects with the rectangle defined by the
-   * given points.  ### Not perfect; returns true for some pieces that it
-   * shouldn't.  Ideally, it should grab the part of the Piece in the
-   * rectangle, and search it for non-transparent pixels.  Costly, so be
-   * careful.
-   * (x1,y1) guaranteed to be SE of (x0,y0)
-   */
-  private boolean intersects(Piece piece, int x0, int y0, int x1, int y1) {
-    int px = piece.getPuzzleX();
-    int py = piece.getPuzzleY();
-    int pw = piece.getCurrentWidth();
-    int ph = piece.getCurrentHeight();
-    Rectangle r = new Rectangle(x0, y0, x1 - x0, y1 - y0);
-    Rectangle rp = new Rectangle(px, py, pw, ph);
-    return r.intersects(rp);
-  }
-
 
   // Keyboard event handling ----------------------------------------------
 
